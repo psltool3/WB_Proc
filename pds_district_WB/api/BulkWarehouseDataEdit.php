@@ -16,16 +16,13 @@ $mapData = [
     "District" => "district",
     "Name of Warehouse" => "name",
     "Warehouse ID" => "id",
-    "Motorable/Non-Motorable" => "type",
     "Warehouse Type" => "warehousetype",
+    "Motorable/Non-Motorable" => "type",
     "Latitude" => "latitude",
     "Longitude" => "longitude",
-    "Normal Rice" => "normal_rice",
-    "State FRK Rice" => "state_frk_rice",
-    "Central FRK Rice" => "central_frk_rice",
     "Storage Rice" => "storage_rice",
-    "Storage State FRK Rice" => "storage_state_frk_rice",
-    "Storage Central FRK Rice" => "storage_central_frk_rice",
+    "Demand Raw Rice" => "demand_raw_rice",
+    "Demand ParaBoiled Rice" => "demand_paraboiled_rice",
 	"Active/Not-Active" => "active"
 ];
 
@@ -67,15 +64,10 @@ function formatName($name) {
 }
 
 function isValidCoordinate($value, $coordinateType) {
-    // Check if the value is a number and not a string
     if (!is_numeric($value)) {
         return false;
     }
-	
-    // Convert the value to a float
     $coordinate = floatval($value);
-
-    // Check if it's latitude or longitude and validate within the range
     switch ($coordinateType) {
         case 'latitude':
             return ($coordinate >= -90 && $coordinate <= 90);
@@ -99,28 +91,24 @@ function filterData(&$str){
 $redirect = 1;
 
 try{
-	//if (isset($_POST["submit"])){
 		$fileName = $_FILES["file"]["tmp_name"];
 		if ($_FILES["file"]["size"] > 0) {
 			$file = fopen($fileName, "r");
 			$i = 0;
 			$district = -1;
 			$name = -1;
-			$id = -2;
-			$warehousetype = -3;
-			$type = -4;
-			$latitude = -5;
-			$longitude = -6;
-			$normal_rice = -7;
-            $state_frk_rice = -8;
-            $central_frk_rice = -9;
-            $storage_rice = -10;
-            $storage_state_frk_rice = -11;
-            $storage_central_frk_rice = -12;
-			$active = -13;
+			$id = -1;
+			$warehousetype = -1;
+			$type = -1;
+			$latitude = -1;
+			$longitude = -1;
+			$storage_rice = -1;
+			$demand_raw_rice = -1;
+			$demand_paraboiled_rice = -1;
+			$active = -1;
 			while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
 				if($i>0){
-					if($district<0 or $name<0 or $id<0 or $type<0 or $normal_rice<0 or $state_frk_rice<0 or $central_frk_rice<0 or $latitude<0 or $longitude<0 or $warehousetype<0 or $active<0){
+					if($district<0 or $name<0 or $id<0 or $type<0 or $demand_raw_rice<0 or $demand_paraboiled_rice<0 or $latitude<0 or $longitude<0 or $warehousetype<0 or $active<0 or $storage_rice<0){
 						echo "Error : You have modified Template Header, please check";
 						exit();
 					}
@@ -129,18 +117,14 @@ try{
 						echo "</br>";
 						$redirect = 0;
 					}
-					if(!isStringNumber($column[$normal_rice])){
-						echo "Error : Check Normal Rice Value: ".$column[$normal_rice];
+
+					if(!isStringNumber($column[$demand_raw_rice])){
+						echo "Error : Check Demand Raw Rice Value: ".$column[$demand_raw_rice];
 						echo "</br>";
 						$redirect = 0;
 					}
-                    if(!isStringNumber($column[$state_frk_rice])){
-						echo "Error : Check State FRK Rice Value: ".$column[$state_frk_rice];
-						echo "</br>";
-						$redirect = 0;
-					}
-                    if(!isStringNumber($column[$central_frk_rice])){
-						echo "Error : Check Central FRK Rice Value: ".$column[$central_frk_rice];
+                    if(!isStringNumber($column[$demand_paraboiled_rice])){
+						echo "Error : Check Demand ParaBoiled Rice Value: ".$column[$demand_paraboiled_rice];
 						echo "</br>";
 						$redirect = 0;
 					}
@@ -151,60 +135,12 @@ try{
 						$redirect = 0;
 					}
                     
-                    if($storage_state_frk_rice >= 0 && isset($column[$storage_state_frk_rice]) && $column[$storage_state_frk_rice] != "" && !isStringNumber($column[$storage_state_frk_rice])){
-						echo "Error : Check Storage State FRK Rice Value: ".$column[$storage_state_frk_rice];
-						echo "</br>";
-						$redirect = 0;
-					}
-                    
-                    if($storage_central_frk_rice >= 0 && isset($column[$storage_central_frk_rice]) && $column[$storage_central_frk_rice] != "" && !isStringNumber($column[$storage_central_frk_rice])){
-						echo "Error : Check Storage Central FRK Rice Value: ".$column[$storage_central_frk_rice];
-						echo "</br>";
-						$redirect = 0;
-					}
-
 					if(!in_array($column[$district], $districts)){
 						echo "Error : Check District Name: ".$column[$district];
 						echo "</br>";
 						$redirect = 0;
 					}
-					
-					// Normal Rice should not exceed Storage Rice
-					if($storage_rice >= 0 && isset($column[$storage_rice]) && $column[$storage_rice] != ""){
-						$normal = floatval($column[$normal_rice]);
-						$storage = floatval($column[$storage_rice]);
-
-						if($normal > $storage){
-							echo "Error : Normal Rice cannot be greater than Storage Rice. Normal Rice: ".$normal." Storage Rice: ".$storage;
-							echo "</br>";
-							$redirect = 0;
-						}
-					}
-
-					// State FRK Rice should not exceed Storage State FRK Rice
-					if($storage_state_frk_rice >= 0 && isset($column[$storage_state_frk_rice]) && $column[$storage_state_frk_rice] != ""){
-						$state_frk = floatval($column[$state_frk_rice]);
-						$storage_state = floatval($column[$storage_state_frk_rice]);
-
-						if($state_frk > $storage_state){
-							echo "Error : State FRK Rice cannot be greater than Storage State FRK Rice. State FRK Rice: ".$state_frk." Storage State FRK Rice: ".$storage_state;
-							echo "</br>";
-							$redirect = 0;
-						}
-					}
-
-					// Central FRK Rice should not exceed Storage Central FRK Rice
-					if($storage_central_frk_rice >= 0 && isset($column[$storage_central_frk_rice]) && $column[$storage_central_frk_rice] != ""){
-						$central_frk = floatval($column[$central_frk_rice]);
-						$storage_central = floatval($column[$storage_central_frk_rice]);
-
-						if($central_frk > $storage_central){
-							echo "Error : Central FRK Rice cannot be greater than Storage Central FRK Rice. Central FRK Rice: ".$central_frk." Storage Central FRK Rice: ".$storage_central;
-							echo "</br>";
-							$redirect = 0;
-						}
-					}
-					
+				
 					if(!($column[$active]==0 || $column[$active]==1)){
 						echo "Error : Check value of active/inactive column: ".$column[$active];
 						echo "</br>";
@@ -216,12 +152,9 @@ try{
 					filterData($column[$name]);
 					filterData($column[$id]);
 					filterData($column[$type]);
-					filterData($column[$normal_rice]);
-					filterData($column[$state_frk_rice]);
-					filterData($column[$central_frk_rice]);
-					if($storage_rice >= 0) filterData($column[$storage_rice]);
-					if($storage_state_frk_rice >= 0) filterData($column[$storage_state_frk_rice]);
-					if($storage_central_frk_rice >= 0) filterData($column[$storage_central_frk_rice]);
+					filterData($column[$storage_rice]);
+                    filterData($column[$demand_raw_rice]);
+                    filterData($column[$demand_paraboiled_rice]);
 					filterData($column[$warehousetype]);
 					filterData($column[$active]);
 					$Warehouse->setDistrict(ucwords(strtolower($column[$district])));
@@ -230,12 +163,9 @@ try{
 					$Warehouse->setName($column[$name]);
 					$Warehouse->setId($column[$id]);
 					$Warehouse->setType($column[$type]);
-					$Warehouse->setNormalRice($column[$normal_rice]);
-                    $Warehouse->setStateFrkRice($column[$state_frk_rice]);
-                    $Warehouse->setCentralFrkRice($column[$central_frk_rice]);
-                    $Warehouse->setStorageRice(isset($column[$storage_rice]) ? $column[$storage_rice] : "0");
-                    $Warehouse->setStorageStateFrkRice(isset($column[$storage_state_frk_rice]) ? $column[$storage_state_frk_rice] : "0");
-                    $Warehouse->setStorageCentralFrkRice(isset($column[$storage_central_frk_rice]) ? $column[$storage_central_frk_rice] : "0");
+					$Warehouse->setStorageRice($column[$storage_rice]);
+                    $Warehouse->setDemandRawRice($column[$demand_raw_rice]);
+                    $Warehouse->setDemandParaboiledRice($column[$demand_paraboiled_rice]);
 					$Warehouse->setWarehousetype($column[$warehousetype]);
 					$Warehouse->setActive($column[$active]);
 					$query_check = $Warehouse->checkEdit($Warehouse);
@@ -268,23 +198,14 @@ try{
 							case $reverseMapData["type"]:
 								$type = $j;
 								break;
-							case $reverseMapData["normal_rice"]:
-								$normal_rice = $j;
-								break;
-                            case $reverseMapData["state_frk_rice"]:
-								$state_frk_rice = $j;
-								break;
-                            case $reverseMapData["central_frk_rice"]:
-								$central_frk_rice = $j;
-								break;
-                            case $reverseMapData["storage_rice"]:
+							case $reverseMapData["storage_rice"]:
 								$storage_rice = $j;
 								break;
-                            case $reverseMapData["storage_state_frk_rice"]:
-								$storage_state_frk_rice = $j;
+                            case $reverseMapData["demand_raw_rice"]:
+								$demand_raw_rice = $j;
 								break;
-                            case $reverseMapData["storage_central_frk_rice"]:
-								$storage_central_frk_rice = $j;
+                            case $reverseMapData["demand_paraboiled_rice"]:
+								$demand_paraboiled_rice = $j;
 								break;
 							case $reverseMapData["warehousetype"]:
 								$warehousetype = $j;
@@ -298,11 +219,6 @@ try{
 				$i = $i+1;
 			}
 		}
-	//}
-	//else{
-	//	echo "Error Please Select .csv file";
-	//	exit();
-	//}
 }
 catch(Exception $e){
 	echo "Error : Please check data in .csv file";
@@ -314,7 +230,6 @@ if($redirect==0){
 }
 
 try{
-	//if (isset($_POST["submit"])){
 		$fileName = $_FILES["file"]["tmp_name"];
 		if ($_FILES["file"]["size"] > 0) {
 			$file = fopen($fileName, "r");
@@ -326,13 +241,10 @@ try{
 			$type = 4;
 			$latitude = 5;
 			$longitude = 6;
-			$normal_rice = 7;
-            $state_frk_rice = 8;
-            $central_frk_rice = 9;
-            $storage_rice = 10;
-            $storage_state_frk_rice = 11;
-            $storage_central_frk_rice = 12;
-			$active = 13;
+			$storage_rice = 7;
+			$demand_raw_rice = 8;
+			$demand_paraboiled_rice = 9;
+			
 			while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
 				if($i>0){
 					$Warehouse = new Warehouse;
@@ -342,28 +254,21 @@ try{
 					filterData($column[$name]);
 					filterData($column[$id]);
 					filterData($column[$type]);
-					filterData($column[$normal_rice]);
-					filterData($column[$state_frk_rice]);
-					filterData($column[$central_frk_rice]);
-					if($storage_rice >= 0) filterData($column[$storage_rice]);
-					if($storage_state_frk_rice >= 0) filterData($column[$storage_state_frk_rice]);
-					if($storage_central_frk_rice >= 0) filterData($column[$storage_central_frk_rice]);
+					filterData($column[$storage_rice]);
+                    filterData($column[$demand_raw_rice]);
+                    filterData($column[$demand_paraboiled_rice]);
 					filterData($column[$warehousetype]);
-					filterData($column[$active]);
 					$Warehouse->setDistrict($column[$district]);
 					$Warehouse->setLatitude($column[$latitude]);
 					$Warehouse->setLongitude($column[$longitude]);
 					$Warehouse->setName($column[$name]);
 					$Warehouse->setId($column[$id]);
 					$Warehouse->setType($column[$type]);
-					$Warehouse->setNormalRice($column[$normal_rice]);
-                    $Warehouse->setStateFrkRice($column[$state_frk_rice]);
-                    $Warehouse->setCentralFrkRice($column[$central_frk_rice]);
-                    $Warehouse->setStorageRice(isset($column[$storage_rice]) ? $column[$storage_rice] : "0");
-                    $Warehouse->setStorageStateFrkRice(isset($column[$storage_state_frk_rice]) ? $column[$storage_state_frk_rice] : "0");
-                    $Warehouse->setStorageCentralFrkRice(isset($column[$storage_central_frk_rice]) ? $column[$storage_central_frk_rice] : "0");
+					$Warehouse->setStorageRice($column[$storage_rice]);
+                    $Warehouse->setDemandRawRice($column[$demand_raw_rice]);
+                    $Warehouse->setDemandParaboiledRice($column[$demand_paraboiled_rice]);
 					$Warehouse->setWarehousetype($column[$warehousetype]);
-					$Warehouse->setActive($column[$active]);
+					$Warehouse->setActive($column[10]);
 					$query_check = $Warehouse->checkEdit($Warehouse);
 					$query_result = mysqli_query($con, $query_check);
 					$numrows = mysqli_num_rows($query_result);
@@ -379,31 +284,37 @@ try{
 				else{
 					for($j=0;$j<count($column);$j++){
 						switch($column[$j]){
-							case "district":
+							case $reverseMapData["district"]:
 								$district = $j;
 								break;
-							case "latitude":
+							case $reverseMapData["latitude"]:
 								$latitude = $j;
 								break;
-							case "longitude":
+							case $reverseMapData["longitude"]:
 								$longitude = $j;
 								break;
-							case "name":
+							case $reverseMapData["name"]:
 								$name = $j;
 								break;
-							case "id":
+							case $reverseMapData["id"]:
 								$id = $j;
 								break;
-							case "type":
+							case $reverseMapData["type"]:
 								$type = $j;
 								break;
-							case "storage":
-								$storage = $j;
+							case $reverseMapData["storage_rice"]:
+								$storage_rice = $j;
 								break;
-							case "warehousetype":
+                            case $reverseMapData["demand_raw_rice"]:
+								$demand_raw_rice = $j;
+								break;
+                            case $reverseMapData["demand_paraboiled_rice"]:
+								$demand_paraboiled_rice = $j;
+								break;
+							case $reverseMapData["warehousetype"]:
 								$warehousetype = $j;
 								break;
-							case "active":
+							case $reverseMapData["active"]:
 								$active = $j;
 								break;
 						}
@@ -415,10 +326,7 @@ try{
 				echo "<script>window.location.href = '../Warehouse.php';</script>";
 			}
 		}
-	//}
-	//else{
-	//	echo "Error Please Select .csv file";
-	//}
+
 }
 catch(Exception $e){
 	echo "Error : Please check data in  .csv file";
@@ -427,5 +335,6 @@ catch(Exception $e){
 else{
     echo "Error : Password or Username is incorrect";
 }
+
 ?>
 <?php require('Fullui.php');  ?>

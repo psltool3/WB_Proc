@@ -67,33 +67,18 @@ if(!isValidCoordinate($_POST["latitude"],'latitude') or !isValidCoordinate($_POS
 	exit();
 }
 
-if(!isStringNumber($_POST["normal_rice"])){
-	echo "Error : Check Normal Rice Value";
+if(isset($_POST["demand_raw_rice"]) && $_POST["demand_raw_rice"] != "" && !isStringNumber($_POST["demand_raw_rice"])){
+	echo "Error : Check Demand (Raw Rice) Value";
 	exit();
 }
 
-if(!isStringNumber($_POST["state_frk_rice"])){
-	echo "Error : Check State FRK Rice Value";
-	exit();
-}
-
-if(!isStringNumber($_POST["central_frk_rice"])){
-	echo "Error : Check Central FRK Rice Value";
+if(isset($_POST["demand_paraboiled_rice"]) && $_POST["demand_paraboiled_rice"] != "" && !isStringNumber($_POST["demand_paraboiled_rice"])){
+	echo "Error : Check Demand (ParaBoiled Rice) Value";
 	exit();
 }
 
 if(isset($_POST["storage_rice"]) && $_POST["storage_rice"] != "" && !isStringNumber($_POST["storage_rice"])){
 	echo "Error : Check Storage Rice Value";
-	exit();
-}
-
-if(isset($_POST["storage_state_frk_rice"]) && $_POST["storage_state_frk_rice"] != "" && !isStringNumber($_POST["storage_state_frk_rice"])){
-	echo "Error : Check Storage State FRK Rice Value";
-	exit();
-}
-
-if(isset($_POST["storage_central_frk_rice"]) && $_POST["storage_central_frk_rice"] != "" && !isStringNumber($_POST["storage_central_frk_rice"])){
-	echo "Error : Check Storage Central FRK Rice Value";
 	exit();
 }
 
@@ -114,24 +99,6 @@ if (
 }
 $errors = [];
 
-$val_storage_rice = (isset($_POST["storage_rice"]) && $_POST["storage_rice"] != "") ? (float)$_POST["storage_rice"] : 0;
-$val_normal_rice = (isset($_POST["normal_rice"]) && $_POST["normal_rice"] != "") ? (float)$_POST["normal_rice"] : 0;
-if($val_normal_rice > $val_storage_rice){
-	$errors[] = "Error : normal rice (Qtl) should not be greater than storage rice(Qtl)";
-}
-
-$val_storage_state = (isset($_POST["storage_state_frk_rice"]) && $_POST["storage_state_frk_rice"] != "") ? (float)$_POST["storage_state_frk_rice"] : 0;
-$val_state_rice = (isset($_POST["state_frk_rice"]) && $_POST["state_frk_rice"] != "") ? (float)$_POST["state_frk_rice"] : 0;
-if($val_state_rice > $val_storage_state){
-	$errors[] = "Error : state frk rice (Qtl) should not be greater than storage state frk rice(Qtl)";
-}
-
-$val_storage_central = (isset($_POST["storage_central_frk_rice"]) && $_POST["storage_central_frk_rice"] != "") ? (float)$_POST["storage_central_frk_rice"] : 0;
-$val_central_rice = (isset($_POST["central_frk_rice"]) && $_POST["central_frk_rice"] != "") ? (float)$_POST["central_frk_rice"] : 0;
-if($val_central_rice > $val_storage_central){
-	$errors[] = "Error : central frk rice (Qtl) should not be greater than storage central frk rice(Qtl)";
-}
-
 if (!empty($errors)) {
 	echo implode("</br>", $errors);
 	exit();
@@ -147,12 +114,9 @@ if(password_verify($person->getPassword(), $dbHashedPassword)){
     $name = formatName($_POST["name"]);
     $id = $_POST["id"];
     $type = $_POST["type"];
-    $normal_rice = $_POST["normal_rice"];
-    $state_frk_rice = $_POST["state_frk_rice"];
-    $central_frk_rice = $_POST["central_frk_rice"];
     $storage_rice = isset($_POST["storage_rice"]) ? $_POST["storage_rice"] : "0";
-    $storage_state_frk_rice = isset($_POST["storage_state_frk_rice"]) ? $_POST["storage_state_frk_rice"] : "0";
-    $storage_central_frk_rice = isset($_POST["storage_central_frk_rice"]) ? $_POST["storage_central_frk_rice"] : "0";
+    $demand_raw_rice = isset($_POST["demand_raw_rice"]) ? $_POST["demand_raw_rice"] : "0";
+    $demand_paraboiled_rice = isset($_POST["demand_paraboiled_rice"]) ? $_POST["demand_paraboiled_rice"] : "0";
     $warehousetype = $_POST["warehousetype"];
     $uniqueid = uniqid("WH_",);
 
@@ -165,12 +129,9 @@ if(password_verify($person->getPassword(), $dbHashedPassword)){
     $Warehouse->setName($name);
     $Warehouse->setId($id);
     $Warehouse->setType($type);
-    $Warehouse->setNormalRice($normal_rice);
-    $Warehouse->setStateFrkRice($state_frk_rice);
-    $Warehouse->setCentralFrkRice($central_frk_rice);
     $Warehouse->setStorageRice($storage_rice);
-    $Warehouse->setStorageStateFrkRice($storage_state_frk_rice);
-    $Warehouse->setStorageCentralFrkRice($storage_central_frk_rice);
+    $Warehouse->setDemandRawRice($demand_raw_rice);
+    $Warehouse->setDemandParaboiledRice($demand_paraboiled_rice);
     $Warehouse->setWarehousetype($warehousetype);
 	$Warehouse->setActive("1");
 

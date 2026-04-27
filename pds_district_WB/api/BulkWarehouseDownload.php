@@ -14,16 +14,13 @@ $mapData = [
     "District" => "district",
     "Name of Warehouse" => "name",
     "Warehouse ID" => "id",
-    "Motorable/Non-Motorable" => "type",
     "Warehouse Type" => "warehousetype",
+    "Motorable/Non-Motorable" => "type",
     "Latitude" => "latitude",
     "Longitude" => "longitude",
-    "Normal Rice" => "normal_rice",
-    "State FRK Rice" => "state_frk_rice",
-    "Central FRK Rice" => "central_frk_rice",
     "Storage Rice" => "storage_rice",
-    "Storage State FRK Rice" => "storage_state_frk_rice",
-    "Storage Central FRK Rice" => "storage_central_frk_rice",
+    "Demand Raw Rice" => "demand_raw_rice",
+    "Demand ParaBoiled Rice" => "demand_paraboiled_rice",
 	"Active/Not-Active" => "active"
 ];
 
@@ -41,18 +38,7 @@ function filterData(&$str){
 // Excel file name for download 
 $fileName = "WarehouseTemplate_" . date('d-m-Y') . ".csv"; 
 
-$columns = array();
-
-$query = "SHOW COLUMNS FROM warehouse";
-$result = mysqli_query($con,$query);
-$numrows = mysqli_num_rows($result);
-if($numrows>0){
-	while($row = mysqli_fetch_array($result)){
-		if($row['Field']!="uniqueid"){
-			array_push($columns,$reverseMapData[$row['Field']]);
-		}
-	}
-}
+$columns = array_keys($mapData);
 
 // Display column names as first row 
 $excelDataColumns = implode(",", array_values($columns)) . "\n";

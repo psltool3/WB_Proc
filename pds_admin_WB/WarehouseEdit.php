@@ -11,12 +11,9 @@ $warehousetype = "";
 $type = "";
 $latitude = "";
 $longitude = "";
-$normal_rice = "";
-$state_frk_rice = "";
-$central_frk_rice = "";
 $storage_rice = "";
-$storage_state_frk_rice = "";
-$storage_central_frk_rice = "";
+$demand_raw_rice = "";
+$demand_paraboiled_rice = "";
 $active = "";
 
 if(isset($_POST["uid"])){
@@ -33,12 +30,9 @@ if(isset($_POST["uid"])){
 		$type = $row['type'];
 		$latitude = $row['latitude'];
 		$longitude = $row['longitude'];
-		$normal_rice = $row['normal_rice'];
-        $state_frk_rice = $row['state_frk_rice'];
-        $central_frk_rice = $row['central_frk_rice'];
         $storage_rice = $row['storage_rice'];
-        $storage_state_frk_rice = $row['storage_state_frk_rice'];
-        $storage_central_frk_rice = $row['storage_central_frk_rice'];
+        $demand_raw_rice = $row['demand_raw_rice'];
+        $demand_paraboiled_rice = $row['demand_paraboiled_rice'];
 		$active = $row['active'];
 	}
 	else{
@@ -111,8 +105,8 @@ else{
                                     <div class="row">
 
                                         <div class="col-md-6">
-											
-											<div class="form-group">
+									
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Name of Warehouse*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
@@ -122,25 +116,25 @@ else{
                                                     <span class="help-block">Warehouse Name</span>
                                                 </div>
                                             </div>
-											
-											<input type="hidden" id="uniqueid" name="uniqueid" value="<?php  echo $_POST["uid"] ?>" />
-											<input type="hidden" id="active" name="active" value="<?php  echo $active ?>" />
-											
-											<div class="form-group">
+									
+									<input type="hidden" id="uniqueid" name="uniqueid" value="<?php  echo $_POST["uid"] ?>" />
+									<input type="hidden" id="active" name="active" value="<?php  echo $active ?>" />
+									
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Motorable/Non-Motorable</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
-												   <span class="input-group-addon"><span class="fa fa-arrow-down"></span></span>
+								   <span class="input-group-addon"><span class="fa fa-arrow-down"></span></span>
                                                     <select class="form-control" id="type" name="type">
-													<option value="motorable">Motorable</option>
-													<option value="nonmotorable">Non-Motorable</option>
+										<option value="motorable">Motorable</option>
+										<option value="nonmotorable">Non-Motorable</option>
                                                     </select>
-													</div>
+										</div>
                                                     <span class="help-block">Motorable/Non-Motorable</span>
                                                 </div>
                                             </div>
-											
-											<div class="form-group">
+									
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Latitude of Warehouse*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
@@ -150,41 +144,8 @@ else{
                                                     <span class="help-block">Latitude of Warehouse</span>
                                                 </div>
                                             </div>
-											
-											<div class="form-group">
-                                                <label class="col-md-3 control-label">Normal Rice (Qtl)*</label>
-                                                <div class="col-md-9">
-                                                    <div class="input-group">
-                                                        <span class="input-group-addon"><span class="fa fa-info"></span></span>
-                                                        <input type="text" class="form-control" id="normal_rice" name="normal_rice" value="<?php echo $normal_rice ?>" required />
-                                                    </div>
-                                                    <span class="help-block">Normal Rice</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="form-group">
-                                                <label class="col-md-3 control-label">State FRK Rice (Qtl)*</label>
-                                                <div class="col-md-9">
-                                                    <div class="input-group">
-                                                        <span class="input-group-addon"><span class="fa fa-info"></span></span>
-                                                        <input type="text" class="form-control" id="state_frk_rice" name="state_frk_rice" value="<?php echo $state_frk_rice ?>" required />
-                                                    </div>
-                                                    <span class="help-block">State FRK Rice</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="form-group">
-                                                <label class="col-md-3 control-label">Central FRK Rice (Qtl)*</label>
-                                                <div class="col-md-9">
-                                                    <div class="input-group">
-                                                        <span class="input-group-addon"><span class="fa fa-info"></span></span>
-                                                        <input type="text" class="form-control" id="central_frk_rice" name="central_frk_rice" value="<?php echo $central_frk_rice ?>" required />
-                                                    </div>
-                                                    <span class="help-block">Central FRK Rice</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="form-group">
+									
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Storage Rice (Qtl)</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
@@ -196,43 +157,43 @@ else{
                                             </div>
 
                                             <div class="form-group">
-                                                <label class="col-md-3 control-label">Storage State FRK Rice (Qtl)</label>
+                                                <label class="col-md-3 control-label">Demand (Raw Rice)*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
                                                         <span class="input-group-addon"><span class="fa fa-info"></span></span>
-                                                        <input type="text" class="form-control" id="storage_state_frk_rice" name="storage_state_frk_rice" value="<?php echo $storage_state_frk_rice ?>" />
+                                                        <input type="text" class="form-control" id="demand_raw_rice" name="demand_raw_rice" value="<?php echo $demand_raw_rice ?>" required />
                                                     </div>
-                                                    <span class="help-block">Storage State FRK Rice</span>
+                                                    <span class="help-block">Demand (Raw Rice)</span>
                                                 </div>
                                             </div>
 
                                             <div class="form-group">
-                                                <label class="col-md-3 control-label">Storage Central FRK Rice (Qtl)</label>
+                                                <label class="col-md-3 control-label">Demand (ParaBoiled Rice)*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
                                                         <span class="input-group-addon"><span class="fa fa-info"></span></span>
-                                                        <input type="text" class="form-control" id="storage_central_frk_rice" name="storage_central_frk_rice" value="<?php echo $storage_central_frk_rice ?>" />
+                                                        <input type="text" class="form-control" id="demand_paraboiled_rice" name="demand_paraboiled_rice" value="<?php echo $demand_paraboiled_rice ?>" required />
                                                     </div>
-                                                    <span class="help-block">Storage Central FRK Rice</span>
+                                                    <span class="help-block">Demand (ParaBoiled Rice)</span>
                                                 </div>
                                             </div>
-										
+								
                                         </div>
                                         <div class="col-md-6">
-										
-											<div class="form-group">
+								
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">District*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
-												   <span class="input-group-addon"><span class="fa fa-arrow-down"></span></span>
+								   <span class="input-group-addon"><span class="fa fa-arrow-down"></span></span>
                                                     <select class="form-control" id="district" name="district">
                                                     </select>
-													</div>
+										</div>
                                                     <span class="help-block">District</span>
                                                 </div>
                                             </div>
-										
-											<div class="form-group">
+								
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Warehouse Id*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
@@ -242,25 +203,25 @@ else{
                                                     <span class="help-block">Warehouse ID</span>
                                                 </div>
                                             </div>
-											
-											<div class="form-group">
+									
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Type of Warehouse ( SWC, CWC, FCI, CAP, other)</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
-												   <span class="input-group-addon"><span class="fa fa-arrow-down"></span></span>
+								   <span class="input-group-addon"><span class="fa fa-arrow-down"></span></span>
                                                     <select class="form-control" id="warehousetype" name="warehousetype">
-													<option value="swc">SWC</option>
-													<option value="cwc">CWC</option>
-													<option value="fci">FCI</option>
-													<option value="cap">CAP</option>
-													<option value="other">Other</option>
+										<option value="swc">SWC</option>
+										<option value="cwc">CWC</option>
+										<option value="fci">FCI</option>
+										<option value="cap">CAP</option>
+										<option value="other">Other</option>
                                                     </select>
-													</div>
+										</div>
                                                     <span class="help-block">Type of Warehouse</span>
                                                 </div>
                                             </div>
-											
-											<div class="form-group">
+									
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Longitude of Warehouse*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
@@ -271,7 +232,7 @@ else{
                                                 </div>
                                             </div>
 
-										   
+							   
                                         </div>
 
                                     </div>
@@ -280,13 +241,13 @@ else{
                                 <div class="panel-footer">
                                     <button class="btn btn-primary pull-right" onclick="showPopup()" type="button">Submit</button>
                                 </div>
-								<div id="popup" class="popup">
-										<a class="close" onclick="hidePopup()" style="font-size:25px">×</a>
-										</br></br>
-										
-										<div class="col-md-6">
-										
-											<div class="form-group">
+						<div id="popup" class="popup">
+								<a class="close" onclick="hidePopup()" style="font-size:25px">&times;</a>
+								</br></br>
+								
+								<div class="col-md-6">
+								
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Username*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
@@ -296,13 +257,13 @@ else{
                                                     <span class="help-block">Username</span>
                                                 </div>
                                             </div>
-											
-											
+									
+									
                                         </div>
                                         <div class="col-md-6">
-										
-										
-											<div class="form-group">
+								
+								
+									<div class="form-group">
                                                 <label class="col-md-3 control-label">Password*</label>
                                                 <div class="col-md-9">
                                                     <div class="input-group">
@@ -312,12 +273,12 @@ else{
                                                     <span class="help-block">Password</span>
                                                 </div>
                                             </div>
-											
-											
+									
+									
                                         </div>
-										
-										<center><button class="btn btn-primary" onclick="verifyCaptcha()">Verify</button></center>
-								</div>
+								
+								<center><button class="btn btn-primary" onclick="verifyCaptcha()">Verify</button></center>
+						</div>
                             </div>
                             </form>
 
@@ -378,13 +339,12 @@ else{
 			var latitude = document.getElementById('latitude').value;
             var longitude = document.getElementById('longitude').value;
 			var id = document.getElementById('id').value;
-            var normal_rice = document.getElementById('normal_rice').value;
-            var state_frk_rice = document.getElementById('state_frk_rice').value;
-            var central_frk_rice = document.getElementById('central_frk_rice').value;
+            var demand_raw_rice = document.getElementById('demand_raw_rice').value;
+            var demand_paraboiled_rice = document.getElementById('demand_paraboiled_rice').value;
             var district = document.getElementById('district').value;
             var warehousetype = document.getElementById('warehousetype').value;
 
-            if (name === '' || type === '' || latitude === '' || longitude === '' || id === '' || normal_rice === '' || state_frk_rice === '' || central_frk_rice === '' || district === '' || warehousetype === '') {
+            if (name === '' || type === '' || latitude === '' || longitude === '' || id === '' || demand_raw_rice === '' || demand_paraboiled_rice === '' || district === '' || warehousetype === '') {
                 alert('Please enter all fields');
                 return false;
             }
