@@ -699,8 +699,13 @@ if($currentTimestamp >= $targetTimestamp) {
 									var approve_admin_part = "<td><button class='btn btn-warning'>System Generated</button></td>";
 								}
 								else{
-									var approve_admin_part = "<td><select class='form-control' onchange='enableDisable(\"" + uniqueid + "\")' id='" + uniqueid_bool + "' name='" + uniqueid_bool + "' required><option value=''>Select</option><option value='yes'>Approve</option><option value='same'>System Generated</option></select></td>";
-									uniqueid_bool_array.push(uniqueid_bool);
+									if(approve_district=="yes" || approve_district=="no"){
+										var approve_admin_part = "<td><select class='form-control' onchange='enableDisable(\"" + uniqueid + "\")' id='" + uniqueid_bool + "' name='" + uniqueid_bool + "' required><option value=''>Select</option><option value='yes'>Approve</option><option value='same'>System Generated</option></select></td>";
+										uniqueid_bool_array.push(uniqueid_bool);
+									}
+									else{
+										var approve_admin_part = "<td><button class='btn btn-warning' disabled>District Implementation Pending</button></td>";
+									}
 								}
 
 								if(approve_district==""){
