@@ -60,7 +60,7 @@ def connect_to_database():
     host = 'localhost'
     user = 'root'
     password = ''
-    database = 'chhattisgarh2'
+    database = 'wb_proc'
     connection = mysql.connector.connect(
         host=host, user=user, password=password, database=database
     )
