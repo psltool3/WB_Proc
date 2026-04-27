@@ -20,15 +20,8 @@ $mapData = [
     "Mill Type" => "type",
     "Latitude" => "latitude",
     "Longitude" => "longitude",
-    "Incoming Minimum of Mota" => "incoming_min_mota",
-    "Incoming Minimum of Patla" => "incoming_min_patla",
-    "Incoming Minimum of Saran" => "incoming_min_saran",
-    "Total Normal Rice (Qtl) Inventory" => "outgoing_min_mota",
-    "Total State FRK Rice (Qtl) Inventory" => "outgoing_min_patla",
-    "Total Central FRK Rice(Qtl) Inventory" => "outgoing_min_saran",
-    "Milling Capacity Mota" => "milling_capacity",
-    "Milling Capacity Patla" => "milling_capacity1",
-    "Milling Capacity Saran" => "milling_capacity2",
+    "Milling Capacity" => "milling_capacity",
+    "Performance Factor" => "performance_factor",
 	"Active/Not-Active" => "active"
 ];
 
@@ -88,7 +81,6 @@ function isValidCoordinate($value, $coordinateType) {
 }
 
 function isStringNumber($stringValue) {
-   // return is_numeric($stringValue);
    return true;
 }
 
@@ -105,17 +97,12 @@ try{
 		$type = -3;
 		$latitude = -5;
 		$longitude = -6;
-        $incoming_min_mota = -7;
-        $incoming_min_patla = -8;
-        $incoming_min_saran = -9;
-        $outgoing_min_mota = -10;
-        $outgoing_min_patla = -11;
-        $outgoing_min_saran = -12;
-        $milling_capacity = -13;
-		$active = -14;
+        $milling_capacity = -7;
+        $performance_factor = -8;
+		$active = -9;
 		while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
 			if($i>0){
-				if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $incoming_min_mota<0 or $incoming_min_patla<0 or $incoming_min_saran<0 or $outgoing_min_mota<0 or $outgoing_min_patla<0 or $outgoing_min_saran<0 or $milling_capacity<0 or $milling_capacity1<0 or $milling_capacity2<0 or $active<0){
+				if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $milling_capacity<0 or $performance_factor<0 or $active<0){
 					echo "Error : You have modified Template Header, please check";
 					exit();
 				}
@@ -150,6 +137,21 @@ try{
 					echo "<br>";
 					$redirect = 0;
 				}	
+
+				// Check Milling Capacity is numeric
+				if (!is_numeric($column[$milling_capacity])) {
+					echo "Error : Milling Capacity must be numeric. Given: " . $column[$milling_capacity];
+					echo "</br>";
+					$redirect = 0;
+				}
+
+				// Check Performance Factor is numeric
+				if (!is_numeric($column[$performance_factor])) {
+					echo "Error : Performance Factor must be numeric. Given: " . $column[$performance_factor];
+					echo "</br>";
+					$redirect = 0;
+				}
+				
 				if(!($column[$active]==0 || $column[$active]==1)){
 					echo "Error : Check value of active/inactive column: ".$column[$active];
 					echo "</br>";
@@ -157,8 +159,9 @@ try{
 				}
 			}
 			else{
+				$column[0] = preg_replace('/^\xEF\xBB\xBF/', '', $column[0]);
 				for($j=0;$j<count($column);$j++){
-					switch($column[$j]){
+					switch(trim($column[$j])){
 						case $reverseMapData["district"]:
 							$district = $j;
 							break;
@@ -177,32 +180,11 @@ try{
 						case $reverseMapData["type"]:
 							$type = $j;
 							break;
-                        case $reverseMapData["incoming_min_mota"]:
-                            $incoming_min_mota = $j;
-                            break;
-                        case $reverseMapData["incoming_min_patla"]:
-                            $incoming_min_patla = $j;
-                            break;
-                        case $reverseMapData["incoming_min_saran"]:
-                            $incoming_min_saran = $j;
-                            break;
-                        case $reverseMapData["outgoing_min_mota"]:
-                            $outgoing_min_mota = $j;
-                            break;
-                        case $reverseMapData["outgoing_min_patla"]:
-                            $outgoing_min_patla = $j;
-                            break;
-                        case $reverseMapData["outgoing_min_saran"]:
-                            $outgoing_min_saran = $j;
-                            break;
                         case $reverseMapData["milling_capacity"]:
                             $milling_capacity = $j;
                             break;
-                        case $reverseMapData["milling_capacity1"]:
-                            $milling_capacity1 = $j;
-                            break;
-                        case $reverseMapData["milling_capacity2"]:
-                            $milling_capacity2 = $j;
+                        case $reverseMapData["performance_factor"]:
+                            $performance_factor = $j;
                             break;
 						case $reverseMapData["active"]:
 							$active = $j;
@@ -224,7 +206,6 @@ if($redirect==0){
 }
 
 try{
-	//if (isset($_POST["submit"])){
 		$fileName = $_FILES["file"]["tmp_name"];
 		if ($_FILES["file"]["size"] > 0) {
 			
@@ -236,42 +217,24 @@ try{
 			$type = -3;
 			$latitude = -5;
 			$longitude = -6;
-            $incoming_min_mota = -7;
-            $incoming_min_patla = -8;
-            $incoming_min_saran = -9;
-            $outgoing_min_mota = -10;
-            $outgoing_min_patla = -11;
-            $outgoing_min_saran = -12;
-            $milling_capacity = -13;
-            $milling_capacity1 = -14;
-            $milling_capacity2 = -15;
-			$active = -14;
+            $milling_capacity = -7;
+            $performance_factor = -8;
+			$active = -9;
 			while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
 				if($i>0){
-					if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $incoming_min_mota<0 or $incoming_min_patla<0 or $incoming_min_saran<0 or $outgoing_min_mota<0 or $outgoing_min_patla<0 or $outgoing_min_saran<0 or $milling_capacity<0 or $milling_capacity1<0 or $milling_capacity2<0 or $active<0){
+					if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $milling_capacity<0 or $performance_factor<0 or $active<0){
 						echo "Error : You have modified Template Header, please check";
 						exit();
 					}
 					$Mill = new Mill;
-					//$uniqueid = uniqid("MILL_",);
-					//$Mill->setUniqueid(substr($uniqueid,0,15));
 					$Mill->setDistrict(ucwords(strtolower($column[$district])));
 					$Mill->setLatitude($column[$latitude]);
 					$Mill->setLongitude($column[$longitude]);
 					$Mill->setName($column[$name]);
 					$Mill->setId($column[$id]);
 					$Mill->setType($column[$type]);
-                    
-                    $Mill->setIncomingMinMota($column[$incoming_min_mota]);
-                    $Mill->setIncomingMinPatla($column[$incoming_min_patla]);
-                    $Mill->setIncomingMinSaran($column[$incoming_min_saran]);
-                    $Mill->setOutgoingMinMota($column[$outgoing_min_mota]);
-                    $Mill->setOutgoingMinPatla($column[$outgoing_min_patla]);
-                    $Mill->setOutgoingMinSaran($column[$outgoing_min_saran]);
                     $Mill->setMillingCapacity($column[$milling_capacity]);
-                    $Mill->setMillingCapacity1($column[$milling_capacity1]);
-                    $Mill->setMillingCapacity2($column[$milling_capacity2]);
-                    
+                    $Mill->setPerformanceFactor($column[$performance_factor]);
 					$Mill->setActive($column[$active]);
 					
 					$query_insert_check = $Mill->checkEdit($Mill);
@@ -288,8 +251,9 @@ try{
 					}
 				}
 				else{
+					$column[0] = preg_replace('/^\xEF\xBB\xBF/', '', $column[0]);
 					for($j=0;$j<count($column);$j++){
-						switch($column[$j]){
+						switch(trim($column[$j])){
 							case $reverseMapData["district"]:
 								$district = $j;
 								break;
@@ -308,32 +272,11 @@ try{
 							case $reverseMapData["type"]:
 								$type = $j;
 								break;
-                            case $reverseMapData["incoming_min_mota"]:
-                                $incoming_min_mota = $j;
-                                break;
-                            case $reverseMapData["incoming_min_patla"]:
-                                $incoming_min_patla = $j;
-                                break;
-                            case $reverseMapData["incoming_min_saran"]:
-                                $incoming_min_saran = $j;
-                                break;
-                            case $reverseMapData["outgoing_min_mota"]:
-                                $outgoing_min_mota = $j;
-                                break;
-                            case $reverseMapData["outgoing_min_patla"]:
-                                $outgoing_min_patla = $j;
-                                break;
-                            case $reverseMapData["outgoing_min_saran"]:
-                                $outgoing_min_saran = $j;
-                                break;
                             case $reverseMapData["milling_capacity"]:
                                 $milling_capacity = $j;
                                 break;
-                            case $reverseMapData["milling_capacity1"]:
-                                $milling_capacity1 = $j;
-                                break;
-                            case $reverseMapData["milling_capacity2"]:
-                                $milling_capacity2 = $j;
+                            case $reverseMapData["performance_factor"]:
+                                $performance_factor = $j;
                                 break;
 							case $reverseMapData["active"]:
 								$active = $j;
@@ -347,10 +290,6 @@ try{
 				echo "<script>window.location.href = '../Mill.php';</script>";
 			}
 		}
-	//}
-	//else{
-		//echo "Error Please Select .csv file";
-	//}
 }
 catch(Exception $e){
 	echo "Error : Please check data in  .csv file";

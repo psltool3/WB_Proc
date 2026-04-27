@@ -67,6 +67,7 @@ if(!isValidCoordinate($_POST["latitude"],'latitude') or !isValidCoordinate($_POS
 	exit();
 }
 
+
 if (
     !isValidCoordinate($_POST["latitude"], 'latitude') ||
     !isValidCoordinate($_POST["longitude"], 'longitude') ||
@@ -79,31 +80,14 @@ if (
 
 $errors = [];
 
-// Incoming Min Mota
-if (
-    !is_numeric($_POST["incoming_min_mota"]) ||
-    !is_numeric($_POST["milling_capacity"]) ||
-    $_POST["incoming_min_mota"] > $_POST["milling_capacity"]
-) {
-    $errors[] = "Error : Incoming Min Mota must be less than or equal to Milling Capacity Mota";
+// Milling Capacity check
+if (!is_numeric($_POST["milling_capacity"])) {
+    $errors[] = "Error : Milling Capacity must be numeric";
 }
 
-// Incoming Min Patla
-if (
-    !is_numeric($_POST["incoming_min_patla"]) ||
-    !is_numeric($_POST["milling_capacity1"]) ||
-    $_POST["incoming_min_patla"] > $_POST["milling_capacity1"]
-) {
-    $errors[] = "Error : Incoming Min Patla must be less than or equal to Milling Capacity Patla";
-}
-
-// Incoming Min Saran
-if (
-    !is_numeric($_POST["incoming_min_saran"]) ||
-    !is_numeric($_POST["milling_capacity2"]) ||
-    $_POST["incoming_min_saran"] > $_POST["milling_capacity2"]
-) {
-    $errors[] = "Error : Incoming Min Saran must be less than or equal to Milling Capacity Saran";
+// Performance Factor check
+if (!is_numeric($_POST["performance_factor"])) {
+    $errors[] = "Error : Performance Factor must be numeric";
 }
 
 // If any error exists, print all and stop
@@ -113,7 +97,6 @@ if (!empty($errors)) {
     }
     exit();
 }
-
 
 $dbHashedPassword = $row['password'];
 if(password_verify($person->getPassword(), $dbHashedPassword)){
@@ -125,16 +108,7 @@ if(password_verify($person->getPassword(), $dbHashedPassword)){
     $id = $_POST["id"];
     $type = $_POST["type"];
     $milling_capacity = $_POST["milling_capacity"];
-    $milling_capacity1 = $_POST["milling_capacity1"];
-    $milling_capacity2 = $_POST["milling_capacity2"];
-    
-    $incoming_min_mota = $_POST["incoming_min_mota"];
-    $incoming_min_patla = $_POST["incoming_min_patla"];
-    $incoming_min_saran = $_POST["incoming_min_saran"];
-    
-    $outgoing_min_mota = $_POST["outgoing_min_mota"];
-    $outgoing_min_patla = $_POST["outgoing_min_patla"];
-    $outgoing_min_saran = $_POST["outgoing_min_saran"];
+    $performance_factor = $_POST["performance_factor"];
     
     $uniqueid = uniqid("MILL_",);
 
@@ -146,17 +120,8 @@ if(password_verify($person->getPassword(), $dbHashedPassword)){
     $Mill->setName($name);
     $Mill->setId($id);
     $Mill->setType($type);
-    
     $Mill->setMillingCapacity($milling_capacity);
-    $Mill->setMillingCapacity1($milling_capacity1);
-    $Mill->setMillingCapacity2($milling_capacity2);
-    $Mill->setIncomingMinMota($incoming_min_mota);
-    $Mill->setIncomingMinPatla($incoming_min_patla);
-    $Mill->setIncomingMinSaran($incoming_min_saran);
-    $Mill->setOutgoingMinMota($outgoing_min_mota);
-    $Mill->setOutgoingMinPatla($outgoing_min_patla);
-    $Mill->setOutgoingMinSaran($outgoing_min_saran);
-    
+    $Mill->setPerformanceFactor($performance_factor);
 	$Mill->setActive("1");
 
     $query_insert_check = $Mill->checkInsert($Mill);

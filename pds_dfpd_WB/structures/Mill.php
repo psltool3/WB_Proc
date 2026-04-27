@@ -7,15 +7,8 @@ class Mill {
     public $type;
     public $latitude;
     public $longitude;
-    public $incoming_min_mota;
-    public $incoming_min_patla;
-    public $incoming_min_saran;
-    public $outgoing_min_mota;
-    public $outgoing_min_patla;
-    public $outgoing_min_saran;
     public $milling_capacity;
-    public $milling_capacity1;
-    public $milling_capacity2;
+    public $performance_factor;
     public $uniqueid;
     public $active;
 
@@ -45,40 +38,12 @@ class Mill {
         return $this->longitude;
     }
 
-    public function getIncomingMinMota() {
-        return $this->incoming_min_mota;
-    }
-
-    public function getIncomingMinPatla() {
-        return $this->incoming_min_patla;
-    }
-
-    public function getIncomingMinSaran() {
-        return $this->incoming_min_saran;
-    }
-
-    public function getOutgoingMinMota() {
-        return $this->outgoing_min_mota;
-    }
-
-    public function getOutgoingMinPatla() {
-        return $this->outgoing_min_patla;
-    }
-
-    public function getOutgoingMinSaran() {
-        return $this->outgoing_min_saran;
-    }
-
     public function getMillingCapacity() {
         return $this->milling_capacity;
     }
 
-    public function getMillingCapacity1() {
-        return $this->milling_capacity1;
-    }
-
-    public function getMillingCapacity2() {
-        return $this->milling_capacity2;
+    public function getPerformanceFactor() {
+        return $this->performance_factor;
     }
 
     public function getUniqueid() {
@@ -116,40 +81,12 @@ class Mill {
         $this->longitude = $longitude;
     }
 
-    public function setIncomingMinMota($incoming_min_mota) {
-        $this->incoming_min_mota = $incoming_min_mota;
-    }
-
-    public function setIncomingMinPatla($incoming_min_patla) {
-        $this->incoming_min_patla = $incoming_min_patla;
-    }
-
-    public function setIncomingMinSaran($incoming_min_saran) {
-        $this->incoming_min_saran = $incoming_min_saran;
-    }
-
-    public function setOutgoingMinMota($outgoing_min_mota) {
-        $this->outgoing_min_mota = $outgoing_min_mota;
-    }
-
-    public function setOutgoingMinPatla($outgoing_min_patla) {
-        $this->outgoing_min_patla = $outgoing_min_patla;
-    }
-
-    public function setOutgoingMinSaran($outgoing_min_saran) {
-        $this->outgoing_min_saran = $outgoing_min_saran;
-    }
-
     public function setMillingCapacity($milling_capacity) {
         $this->milling_capacity = $milling_capacity;
     }
 
-    public function setMillingCapacity1($milling_capacity1) {
-        $this->milling_capacity1 = $milling_capacity1;
-    }
-
-    public function setMillingCapacity2($milling_capacity2) {
-        $this->milling_capacity2 = $milling_capacity2;
+    public function setPerformanceFactor($performance_factor) {
+        $this->performance_factor = $performance_factor;
     }
 
     public function setUniqueid($uniqueid) {
@@ -161,7 +98,7 @@ class Mill {
     }
 
     function insert(Mill $mill){
-        return "INSERT INTO mill (district, name, id, type, latitude, longitude, incoming_min_mota, incoming_min_patla, incoming_min_saran, outgoing_min_mota, outgoing_min_patla, outgoing_min_saran, milling_capacity, milling_capacity1, milling_capacity2, uniqueid, active) VALUES ('".$mill->getDistrict()."','".$mill->getName()."','".$mill->getId()."','".$mill->getType()."','".$mill->getLatitude()."','".$mill->getLongitude()."','".$mill->getIncomingMinMota()."','".$mill->getIncomingMinPatla()."','".$mill->getIncomingMinSaran()."','".$mill->getOutgoingMinMota()."','".$mill->getOutgoingMinPatla()."','".$mill->getOutgoingMinSaran()."','".$mill->getMillingCapacity()."','".$mill->getMillingCapacity1()."','".$mill->getMillingCapacity2()."','".$mill->getUniqueid()."','".$mill->getActive()."')";
+        return "INSERT INTO mill (district, name, id, type, latitude, longitude, milling_capacity, performance_factor, uniqueid, active) VALUES ('".$mill->getDistrict()."','".$mill->getName()."','".$mill->getId()."','".$mill->getType()."','".$mill->getLatitude()."','".$mill->getLongitude()."','".$mill->getMillingCapacity()."','".$mill->getPerformanceFactor()."','".$mill->getUniqueid()."','".$mill->getActive()."')";
     }
 
     function delete(Mill $mill){
@@ -189,11 +126,11 @@ class Mill {
     }
 
     function update(Mill $mill){
-        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',id = '".$mill->getId()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',incoming_min_mota = '".$mill->getIncomingMinMota()."',incoming_min_patla = '".$mill->getIncomingMinPatla()."',incoming_min_saran = '".$mill->getIncomingMinSaran()."',outgoing_min_mota = '".$mill->getOutgoingMinMota()."',outgoing_min_patla = '".$mill->getOutgoingMinPatla()."',outgoing_min_saran = '".$mill->getOutgoingMinSaran()."',milling_capacity = '".$mill->getMillingCapacity()."',milling_capacity1 = '".$mill->getMillingCapacity1()."',milling_capacity2 = '".$mill->getMillingCapacity2()."',active = '".$mill->getActive()."' WHERE uniqueid = '".$mill->getUniqueid()."'";
+        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',id = '".$mill->getId()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',milling_capacity = '".$mill->getMillingCapacity()."',performance_factor = '".$mill->getPerformanceFactor()."',active = '".$mill->getActive()."' WHERE uniqueid = '".$mill->getUniqueid()."'";
     }
 
     function updateEdit(Mill $mill){
-        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',incoming_min_mota = '".$mill->getIncomingMinMota()."',incoming_min_patla = '".$mill->getIncomingMinPatla()."',incoming_min_saran = '".$mill->getIncomingMinSaran()."',outgoing_min_mota = '".$mill->getOutgoingMinMota()."',outgoing_min_patla = '".$mill->getOutgoingMinPatla()."',outgoing_min_saran = '".$mill->getOutgoingMinSaran()."',milling_capacity = '".$mill->getMillingCapacity()."',milling_capacity1 = '".$mill->getMillingCapacity1()."',milling_capacity2 = '".$mill->getMillingCapacity2()."',active = '".$mill->getActive()."' WHERE id = '".$mill->getId()."'";
+        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',milling_capacity = '".$mill->getMillingCapacity()."',performance_factor = '".$mill->getPerformanceFactor()."',active = '".$mill->getActive()."' WHERE id = '".$mill->getId()."'";
     }
 }
 

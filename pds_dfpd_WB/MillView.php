@@ -58,15 +58,8 @@ if (isset($_POST['step']) && $_POST['step'] == 'leg1') {
 												<th style="font-size:15px">Type</th>
 												<th style="font-size:15px">Latitude</th>
 												<th style="font-size:15px">Longitude</th>
-												<th style="font-size:15px">Incoming Mota</th>
-												<th style="font-size:15px">Incoming Patla</th>
-												<th style="font-size:15px">Incoming Saran</th>
-												<th style="font-size:15px">Outgoing Mota</th>
-												<th style="font-size:15px">Outgoing Patla</th>
-												<th style="font-size:15px">Outgoing Saran</th>
-												<th style="font-size:15px">Milling Capacity Mota</th>
-												<th style="font-size:15px">Milling Capacity Patla</th>
-												<th style="font-size:15px">Milling Capacity Saran</th>
+												<th style="font-size:15px">Milling Capacity</th>
+												<th style="font-size:15px">Performance Factor</th>
 												<th style="font-size:15px">Active</th>
                                             </tr>
                                         </thead>
@@ -86,15 +79,8 @@ if (isset($_POST['step']) && $_POST['step'] == 'leg1') {
 											"<td>{$row['type']}</td>".
 											"<td>{$row['latitude']}</td>".
 											"<td>{$row['longitude']}</td>".
-											"<td>{$row['incoming_min_mota']}</td>".
-											"<td>{$row['incoming_min_patla']}</td>".
-											"<td>{$row['incoming_min_saran']}</td>".
-											"<td>{$row['outgoing_min_mota']}</td>".
-											"<td>{$row['outgoing_min_patla']}</td>".
-											"<td>{$row['outgoing_min_saran']}</td>".
 											"<td>{$row['milling_capacity']}</td>".
-											"<td>{$row['milling_capacity1']}</td>".
-											"<td>{$row['milling_capacity2']}</td>".
+											"<td>{$row['performance_factor']}</td>".
 											"<td>{$row['active']}</td></tr>";
 										}
 										

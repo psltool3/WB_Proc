@@ -84,20 +84,8 @@ require('Header.php');
 												<th style="font-size:15px">Mill Type</th>
 												<th style="font-size:15px">Latitude</th>
 												<th style="font-size:15px">Longitude</th>
-                                                
-												<th style="font-size:15px">Incoming Min Mota</th>
-                                                <th style="font-size:15px">Incoming Min Patla</th>
-                                                <th style="font-size:15px">Incoming Min Saran</th>
-                                                
-                                                <th style="font-size:15px">Total Normal Rice (Qtl) Inventory</th>
-                                                <th style="font-size:15px">Total State FRK Rice (Qtl) Inventory</th>
-                                                <th style="font-size:15px">Total Central FRK Rice(Qtl) Inventory</th>
-               
-                                                
-												<th style="font-size:15px">Milling Capacity Mota</th>
-                                                <th style="font-size:15px">Milling Capacity Patla</th>
-                                                <th style="font-size:15px">Milling Capacity Saran</th>
-                                                
+												<th style="font-size:15px">Milling Capacity</th>
+												<th style="font-size:15px">Performance Factor</th>
 												<th style="font-size:16px">Status</th>
 												<th style="font-size:16px">Change Status</th>
                                                 <th style="font-size:15px">Edit</th>
@@ -126,18 +114,8 @@ require('Header.php');
 											"<td>{$row['type']}</td>".
 											"<td>{$row['latitude']}</td>".
 											"<td>{$row['longitude']}</td>".
-                                            
-                                            "<td>{$row['incoming_min_mota']}</td>".
-                                            "<td>{$row['incoming_min_patla']}</td>".
-                                            "<td>{$row['incoming_min_saran']}</td>".
-                                            
-                                            "<td>{$row['outgoing_min_mota']}</td>".
-                                            "<td>{$row['outgoing_min_patla']}</td>".
-                                            "<td>{$row['outgoing_min_saran']}</td>".
-                                            
 											"<td>{$row['milling_capacity']}</td>".
-                                            "<td>{$row['milling_capacity1']}</td>".
-                                            "<td>{$row['milling_capacity2']}</td>".
+											"<td>{$row['performance_factor']}</td>".
                                             
 											"<td>$status</td>".
 											 "<td> <button class='btn btn-info btn-rounded' onclick=\"change_status('{$temp_id}')\">Change Status</button></td>".

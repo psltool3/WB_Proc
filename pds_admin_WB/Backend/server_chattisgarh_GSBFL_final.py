@@ -1300,10 +1300,10 @@ def save_to_database(month, year, day):
         
         mill_drop_query = 'DROP TABLE IF EXISTS ' + mill_table;
         cursor.execute(mill_drop_query)
-        create_mill_query = ("CREATE TABLE " + mill_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, incoming_min_mota VARCHAR(100) NOT NULL, incoming_min_patla VARCHAR(100) NOT NULL, incoming_min_saran VARCHAR(100) NOT NULL, outgoing_min_mota VARCHAR(100) NOT NULL, outgoing_min_patla VARCHAR(100) NOT NULL, outgoing_min_saran VARCHAR(100) NOT NULL, milling_capacity VARCHAR(100) NOT NULL, milling_capacity1 VARCHAR(100) NOT NULL, milling_capacity2 VARCHAR(100) NOT NULL, active VARCHAR(10) NOT NULL DEFAULT '1')")
+        create_mill_query = ("CREATE TABLE " + mill_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, name VARCHAR(255) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, milling_capacity VARCHAR(100) NOT NULL, performance_factor INT(11), active VARCHAR(10) NOT NULL DEFAULT '1')")
         cursor.execute(create_mill_query)
         connection.commit()
-        copy_mill_data = ("INSERT INTO " + mill_table + " SELECT * FROM mill WHERE active='1'")
+        copy_mill_data = ("INSERT INTO " + mill_table + " SELECT uniqueid, district, name, id, type, latitude, longitude, milling_capacity, performance_factor, active FROM mill WHERE active='1'")
         cursor.execute(copy_mill_data)
         connection.commit()
         
@@ -1361,10 +1361,10 @@ def save_to_database_leg1(month, year, day):
         #print(mill_drop_query)
         cursor.execute(mill_drop_query)
         connection.commit()
-        create_mill_query = ("CREATE TABLE " + mill_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, incoming_min_mota VARCHAR(100) NOT NULL, incoming_min_patla VARCHAR(100) NOT NULL, incoming_min_saran VARCHAR(100) NOT NULL, outgoing_min_mota VARCHAR(100) NOT NULL, outgoing_min_patla VARCHAR(100) NOT NULL, outgoing_min_saran VARCHAR(100) NOT NULL, milling_capacity VARCHAR(100) NOT NULL, milling_capacity1 VARCHAR(100) NOT NULL, milling_capacity2 VARCHAR(100) NOT NULL, active VARCHAR(10) NOT NULL DEFAULT '1')")
+        create_mill_query = ("CREATE TABLE " + mill_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, name VARCHAR(255) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, milling_capacity VARCHAR(100) NOT NULL, performance_factor INT(11), active VARCHAR(10) NOT NULL DEFAULT '1')")
         cursor.execute(create_mill_query)
         connection.commit()
-        copy_mill_data = ("INSERT INTO " + mill_table + " SELECT * FROM mill WHERE active='1'")
+        copy_mill_data = ("INSERT INTO " + mill_table + " SELECT uniqueid, district, name, id, type, latitude, longitude, milling_capacity, performance_factor, active FROM mill WHERE active='1'")
         cursor.execute(copy_mill_data)
         connection.commit()
         
@@ -1382,7 +1382,7 @@ def save_to_database_leg1(month, year, day):
         cursor.execute(mill_replica_drop_query)
         connection.commit()
         
-        create_replica_query = ("CREATE TABLE " + mill_replica_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, to_district VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, incoming_min_mota VARCHAR(100) NOT NULL, incoming_min_patla VARCHAR(100) NOT NULL, incoming_min_saran VARCHAR(100) NOT NULL, outgoing_min_mota VARCHAR(100) NOT NULL, outgoing_min_patla VARCHAR(100) NOT NULL, outgoing_min_saran VARCHAR(100) NOT NULL, milling_capacity VARCHAR(100) NOT NULL, milling_capacity1 VARCHAR(100) NOT NULL, milling_capacity2 VARCHAR(100) NOT NULL, active VARCHAR(10) NOT NULL DEFAULT '1')")
+        create_replica_query = ("CREATE TABLE " + mill_replica_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, to_district VARCHAR(100) NOT NULL, name VARCHAR(255) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, milling_capacity VARCHAR(100) NOT NULL, performance_factor INT(11), active VARCHAR(10) NOT NULL DEFAULT '1')")
         cursor.execute(create_replica_query)
         connection.commit()
         
