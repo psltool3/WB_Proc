@@ -85,6 +85,16 @@ if (!is_numeric($_POST["milling_capacity"])) {
     $errors[] = "Error : Milling Capacity must be numeric";
 }
 
+// Inventory Raw Rice check
+if (!is_numeric($_POST["Inventory_Raw_Rice"])) {
+    $errors[] = "Error : Inventory Raw Rice must be numeric";
+}
+
+// Inventory Para Rice check
+if (!is_numeric($_POST["Inventory_Para_Rice"])) {
+    $errors[] = "Error : Inventory Para Rice must be numeric";
+}
+
 // Performance Factor check
 if (!is_numeric($_POST["performance_factor"])) {
     $errors[] = "Error : Performance Factor must be numeric";
@@ -108,6 +118,8 @@ if(password_verify($person->getPassword(), $dbHashedPassword)){
     $id = $_POST["id"];
     $type = $_POST["type"];
     $milling_capacity = $_POST["milling_capacity"];
+    $Inventory_Raw_Rice = $_POST["Inventory_Raw_Rice"];
+    $Inventory_Para_Rice = $_POST["Inventory_Para_Rice"];
     $performance_factor = $_POST["performance_factor"];
     
     $uniqueid = uniqid("MILL_",);
@@ -121,6 +133,8 @@ if(password_verify($person->getPassword(), $dbHashedPassword)){
     $Mill->setId($id);
     $Mill->setType($type);
     $Mill->setMillingCapacity($milling_capacity);
+    $Mill->setInventoryRawRice($Inventory_Raw_Rice);
+    $Mill->setInventoryParaRice($Inventory_Para_Rice);
     $Mill->setPerformanceFactor($performance_factor);
 	$Mill->setActive("1");
 

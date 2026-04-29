@@ -476,7 +476,7 @@ require('Header.php');
 								<i class="fa fa-info-circle" aria-hidden="true"></i> Pre-Analysis
 							</div>
 							<div class="row">
-								<div class="col-md-3 mb-3">
+								<div class="col-md-4 mb-3">
 									<div class="card h-100"
 										style="background-color:#4A90E2; color:white; padding:12px; font-weight: bold;">
 										<div style="font-size:20px" id="total_mills"></div>
@@ -484,27 +484,19 @@ require('Header.php');
 									</div>
 								</div>
 								
-								<div class="col-md-3 mb-3">
+								<div class="col-md-4 mb-3">
 									<div class="card h-100"
 										style="background-color:#28A745; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_supplymota"></div>
-										<div style="font-size:14px">Total Normal Rice (Qtl) Inventory</div>
+										<div style="font-size:20px" id="total_supply_raw"></div>
+										<div style="font-size:14px">Total Raw Rice (Qtl) Inventory</div>
 									</div>
 								</div>
 								
-								<div class="col-md-3 mb-3">
+								<div class="col-md-4 mb-3">
 									<div class="card h-100"
 										style="background-color:#E74C3C; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_supplypatla"></div>
-										<div style="font-size:14px">Total State FRK Rice (Qtl) Inventory</div>
-									</div>
-								</div>
-								
-								<div class="col-md-3 mb-3">
-									<div class="card h-100"
-										style="background-color:#FF5722; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_supplysaran"></div>
-										<div style="font-size:14px">Total Central FRK Rice(Qtl) Inventory</div>
+										<div style="font-size:20px" id="total_supply_para"></div>
+										<div style="font-size:14px">Total Para Rice (Qtl) Inventory</div>
 									</div>
 								</div>
 							
@@ -512,7 +504,7 @@ require('Header.php');
 								
 								<br><br><br><br><br>
 								
-								<div class="col-md-3 mb-3">
+								<div class="col-md-4 mb-3">
 									<div class="card h-100"
 										style="background-color:#F39C12; color:white; padding:12px; font-weight: bold;">
 										<div style="font-size:20px" id="total_warehouse"></div>
@@ -520,52 +512,28 @@ require('Header.php');
 									</div>
 								</div>
 								
-								<div class="col-md-3 mb-3">
+								<div class="col-md-4 mb-3">
 									<div class="card h-100"
 										style="background-color:#8E44AD; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_demandmota"></div>
-										<div style="font-size:14px">Total Normal Rice(Qtl) Demand</div>
+										<div style="font-size:20px" id="total_demand_raw"></div>
+										<div style="font-size:14px">Total Raw Rice (Qtl) Demand</div>
 									</div>
 								</div>
 								
-								<div class="col-md-3 mb-3">
+								<div class="col-md-4 mb-3">
 									<div class="card h-100"
 										style="background-color:#1ABC9C; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_demandpatla"></div>
-										<div style="font-size:14px">Total State FRK Rice(Qtl) Demand</div>
-									</div>
-								</div>
-								
-								<div class="col-md-3 mb-3">
-									<div class="card h-100"
-										style="background-color:#FF6B81; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_demandsaran"></div>
-										<div style="font-size:14px">Total Central FRK Rice(Qtl) Demand</div>
+										<div style="font-size:20px" id="total_demand_para"></div>
+										<div style="font-size:14px">Total Para Rice (Qtl) Demand</div>
 									</div>
 								</div>
 							<br><br><br><br><br>
 							
-							<div class="col-md-4 mb-4">
+							<div class="col-md-12 mb-4">
 									<div class="card h-100"
 										style="background-color:#34495E; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_storagemota1"></div>
-										<div style="font-size:14px">Total Storage Normal Rice</div>
-									</div>
-								</div>
-								
-								<div class="col-md-4 mb-4">
-									<div class="card h-100"
-										style="background-color:#F1C40F; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_storagepatla"></div>
-										<div style="font-size:14px">Total Storage State FRK Rice</div>
-									</div>
-								</div>
-								
-								<div class="col-md-4 mb-4">
-									<div class="card h-100"
-										style="background-color:#00BCD4; color:white; padding:12px; font-weight: bold;">
-										<div style="font-size:20px" id="total_storagesaran"></div>
-										<div style="font-size:14px">Total Storage Central FRK Rice</div>
+										<div style="font-size:20px" id="total_storage"></div>
+										<div style="font-size:14px">Total Storage</div>
 									</div>
 								</div>
 								
@@ -954,18 +922,14 @@ require('Header.php');
 								.then(response => response.json())
 								.then(data => {
 									document.getElementById("total_mills").innerHTML = formatNumberWithCommasWithoutDecimal(data["Warehouse_No"]);
-									document.getElementById("total_supplymota").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Supply_Mota"]);
-									document.getElementById("total_supplypatla").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Supply_Patla"]);
-									document.getElementById("total_supplysaran").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Supply_Saran"]);
+									document.getElementById("total_supply_raw").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Supply_Raw"]);
+									document.getElementById("total_supply_para").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Supply_Para"]);
 									
 									document.getElementById("total_warehouse").innerHTML = formatNumberWithCommasWithoutDecimal(data["FPS_No"]);
-									document.getElementById("total_demandmota").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Demand Mota"]);
-									document.getElementById("total_demandpatla").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Demand_Patla"]);
-									document.getElementById("total_demandsaran").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Demand_Saran"]);
+									document.getElementById("total_demand_raw").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Demand_Raw"]);
+									document.getElementById("total_demand_para").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Demand_Para"]);
 									
-									document.getElementById("total_storagemota1").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Storage_Mota"]);
-									document.getElementById("total_storagepatla").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Storage_Patla"]);
-									document.getElementById("total_storagesaran").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Storage_Saran"]);
+									document.getElementById("total_storage").innerHTML = formatNumberWithCommasWithoutDecimal(data["Total_Storage"]);
 									
 
 									
@@ -1352,19 +1316,13 @@ function handleStateCheckboxChange() {
 
 				district_names = data.District_Name;
 
-				var totalCapacitymota   = round2(Object.values(data.District_Capacity_Mota || {}).reduce((a, b) => a + b, 0));
-				var totalCapacitypatla  = round2(Object.values(data.District_Capacity_Patla || {}).reduce((a, b) => a + b, 0));
-				var totalCapacitysaran  = round2(Object.values(data.District_Capacity_Saran || {}).reduce((a, b) => a + b, 0));
+				var totalSupplyRaw   = round2(Object.values(data.District_Supply_Raw || {}).reduce((a, b) => a + b, 0));
+				var totalSupplyPara  = round2(Object.values(data.District_Supply_Para || {}).reduce((a, b) => a + b, 0));
 
-				var totalDemandmota     = round2(Object.values(data.District_Demand_Mota || {}).reduce((a, b) => a + b, 0));
-				var totalDemandPatla    = round2(Object.values(data.District_Demand_Patla || {}).reduce((a, b) => a + b, 0));
-				var totalDemandSaran    = round2(Object.values(data.District_Demand_Saran || {}).reduce((a, b) => a + b, 0));
+				var totalDemandRaw     = round2(Object.values(data.District_Demand_Raw || {}).reduce((a, b) => a + b, 0));
+				var totalDemandPara    = round2(Object.values(data.District_Demand_Para || {}).reduce((a, b) => a + b, 0));
 				
-				
-				var totalStoragemota     = round2(Object.values(data.District_Storage_Mota || {}).reduce((a, b) => a + b, 0));
-				var totalStoragepatla    = round2(Object.values(data.District_Storage_Patla || {}).reduce((a, b) => a + b, 0));
-				var totalStoragesaran    = round2(Object.values(data.District_Storage_Saran || {}).reduce((a, b) => a + b, 0));
-
+				var totalStorage     = round2(Object.values(data.District_Storage || {}).reduce((a, b) => a + b, 0));
 
 				var monthParts = document.getElementById("today_date").value.split("-");
 				var monthIdx = parseInt(monthParts[1]) - 1;
@@ -1373,20 +1331,18 @@ function handleStateCheckboxChange() {
 				
 				
 
-				document.getElementById("totalFciDemand").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Demand Normal Rice: " + totalDemandmota + " (Qtl)</span>";
-				document.getElementById("totalFciSupply").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Supply Normal Rice: " + totalCapacitymota + " (Qtl)</span>";
+				document.getElementById("totalFciDemand").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Demand Raw Rice: " + totalDemandRaw + " (Qtl)</span>";
+				document.getElementById("totalFciSupply").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Supply Raw Rice: " + totalSupplyRaw + " (Qtl)</span>";
 				
-				document.getElementById("totalFcicapacity").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Capacity Normal Rice: " + totalStoragemota + " (Qtl)</span>";
+				document.getElementById("totalFcicapacity").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Storage: " + totalStorage + " (Qtl)</span>";
 				
-				document.getElementById("totalFciDemand1").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Demand State FRK Rice: " + totalDemandPatla + " (Qtl)</span>";
-				document.getElementById("totalFciSupply1").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Supply State FRK Rice: " + totalCapacitypatla + " (Qtl)</span>";
+				document.getElementById("totalFciDemand1").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Demand Para Rice: " + totalDemandPara + " (Qtl)</span>";
+				document.getElementById("totalFciSupply1").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Supply Para Rice: " + totalSupplyPara + " (Qtl)</span>";
 				
-				document.getElementById("totalFcicapacity1").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Capacity State FRK Rice: " + totalStoragepatla + " (Qtl)</span>";
-				
-				document.getElementById("totalFciDemand2").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Demand Central FRK Rice: " + totalDemandSaran + " (Qtl)</span>";
-				document.getElementById("totalFciSupply2").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Supply Central FRK Rice: " + totalCapacitysaran + " (Qtl)</span>";
-				
-				document.getElementById("totalFcicapacity2").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Total Capacity Central FRK Rice: " + totalStoragesaran + " (Qtl)</span>";
+				document.getElementById("totalFcicapacity1").innerHTML = "";
+				document.getElementById("totalFciDemand2").innerHTML = "";
+				document.getElementById("totalFciSupply2").innerHTML = "";
+				document.getElementById("totalFcicapacity2").innerHTML = "";
 				
 				document.getElementById("selectedMonth").innerHTML = "<span style='color: white; font-size: 14px;'>" + "Selected Month: " + capitalizeFirstLetter(month) + "</span>";
 
@@ -1405,13 +1361,11 @@ function handleStateCheckboxChange() {
 					);
 				}
 
-				if (totalCapacitymota >= 0 && totalDemandmota >= 0 && totalCapacitypatla >= 0 && totalDemandPatla >= 0&&totalCapacitysaran >= 0 && totalDemandSaran >= 0 && totalStoragemota >= 0 && totalStoragepatla >= 0 && totalStoragesaran >= 0 ) {
-					if (totalCapacitymota >= totalDemandmota && totalCapacitypatla >= totalDemandPatla && totalCapacitysaran >= totalDemandSaran
-					&& totalCapacitymota <= totalStoragemota && totalCapacitypatla <= totalStoragepatla && totalCapacitysaran <= totalStoragesaran 
-					&& totalDemandmota <= totalStoragemota && totalDemandPatla <= totalStoragepatla && totalDemandSaran <= totalStoragesaran &&
-					    isEmptyDistrict(districtdata["District_Name_All"]) &&
-						isEmptyDistrict(districtdata1["District_Name_All2"]) &&
-						isEmptyDistrict(districtdata2["District_Name_All3"])) {
+				if (totalSupplyRaw >= 0 && totalDemandRaw >= 0 && totalSupplyPara >= 0 && totalDemandPara >= 0 && totalStorage >= 0 ) {
+					if (totalSupplyRaw >= totalDemandRaw && totalSupplyPara >= totalDemandPara
+					&& totalSupplyRaw + totalSupplyPara <= totalStorage 
+					&& totalDemandRaw + totalDemandPara <= totalStorage &&
+					    isEmptyDistrict(districtdata["District_Name_All"])) {
 						// document.getElementById("result").innerHTML = "Optimization can be done.";
 						document.getElementById("result").innerHTML = "<span style='font-weight: bold; font-size: 20px; color: green;'>Optimization can be done.</span>";
 
@@ -1426,35 +1380,32 @@ function handleStateCheckboxChange() {
 					}
 
 					// Get district names from the JSON data
-					const districtNamesCapacity = Object.keys(data.District_Capacity_Mota || {});
-					const districtNamesDemand = Object.keys(data.District_Demand_Mota || {});
+					const districtNamesSupplyRaw = Object.keys(data.District_Supply_Raw || {});
+					const districtNamesDemandRaw = Object.keys(data.District_Demand_Raw || {});
 
-					const districtNamesCapacityPatla = Object.keys(data.District_Capacity_Patla || {});
-					const districtNamesDemandPatla = Object.keys(data.District_Demand_Patla || {});
+					const districtNamesSupplyPara = Object.keys(data.District_Supply_Para || {});
+					const districtNamesDemandPara = Object.keys(data.District_Demand_Para || {});
 
-					const districtNamesCapacitySaran = Object.keys(data.District_Capacity_Saran || {});
-					const districtNamesDemandSaran = Object.keys(data.District_Demand_Saran || {});
+					const districtNamesStorage = Object.keys(data.District_Storage || {});
 
 					const unionArray = [
 					  ...new Set([
-						...districtNamesCapacity,
-						...districtNamesDemand,
-						...districtNamesCapacityPatla,
-						...districtNamesDemandPatla,
-						...districtNamesCapacitySaran,
-						...districtNamesDemandSaran
+						...districtNamesSupplyRaw,
+						...districtNamesDemandRaw,
+						...districtNamesSupplyPara,
+						...districtNamesDemandPara,
+						...districtNamesStorage
 					  ])
 					];
 
 					// Get capacities and demands for each district
-					var capacitiesmota = unionArray.map(district => data.District_Capacity_Mota[district]);
-					var demandsmota = unionArray.map(district => data.District_Demand_Mota[district]);
+					var supplyRaw = unionArray.map(district => data.District_Supply_Raw[district] || 0);
+					var demandRaw = unionArray.map(district => data.District_Demand_Raw[district] || 0);
 					
-					var capacitiespatla = unionArray.map(district => data.District_Capacity_Patla[district]);
-					var demandspatla = unionArray.map(district => data.District_Demand_Patla[district]);
+					var supplyPara = unionArray.map(district => data.District_Supply_Para[district] || 0);
+					var demandPara = unionArray.map(district => data.District_Demand_Para[district] || 0);
 					
-					var capacitiessaran = unionArray.map(district => data.District_Capacity_Saran[district]);
-					var demandssaran = unionArray.map(district => data.District_Demand_Saran[district]);
+					var storageTotal = unionArray.map(district => data.District_Storage[district] || 0);
 					
 
 					// Generate newData object
@@ -1462,34 +1413,29 @@ function handleStateCheckboxChange() {
 						labels: unionArray,
 						datasets: [
 							{
-								label: 'Normal Rice Demand',
+								label: 'Raw Rice Demand',
 								backgroundColor: '#9B59B6',
-								data: demandsmota
+								data: demandRaw
 							},
 							{
-								label: 'Normal Rice Supply',
+								label: 'Raw Rice Supply',
 								backgroundColor: '#27AE60',
-								data: capacitiesmota
+								data: supplyRaw
 							},
 							{
-								label: 'State FRK Rice Demand',
+								label: 'Para Rice Demand',
 								backgroundColor: '#D35400',
-								data: demandspatla
+								data: demandPara
 							},
 							{
-								label: 'State FRK Rice Supply',
+								label: 'Para Rice Supply',
 								backgroundColor: '#F39C12',
-								data: capacitiespatla
+								data: supplyPara
 							},
 							{
-								label: 'Central FRK Rice Demand',
-								backgroundColor: '#9B59B6',
-								data: demandssaran
-							},
-							{
-								label: 'Central FRK Rice Supply',
-								backgroundColor: '#E74C3C',
-								data: capacitiessaran
+								label: 'Storage',
+								backgroundColor: '#34495E',
+								data: storageTotal
 							}
 						]
 					};

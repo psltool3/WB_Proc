@@ -20,6 +20,8 @@ $mapData = [
     "Latitude" => "latitude",
     "Longitude" => "longitude",
     "Milling Capacity" => "milling_capacity",
+    "Inventory Raw Rice" => "Inventory_Raw_Rice",
+    "Inventory Para Rice" => "Inventory_Para_Rice",
     "Performance Factor" => "performance_factor",
 	"Active/Not-Active" => "active"
 ];

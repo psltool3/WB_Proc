@@ -139,6 +139,28 @@ require('Header.php');
                                                 </div>
                                             </div>
 
+                                            <div class="form-group">
+                                                <label class="col-md-3 control-label">Inventory Raw Rice*</label>
+                                                <div class="col-md-9">
+                                                    <div class="input-group">
+                                                        <span class="input-group-addon"><span class="fa fa-info"></span></span>
+                                                        <input type="text" class="form-control" id="Inventory_Raw_Rice" name="Inventory_Raw_Rice" required />
+                                                    </div>
+                                                    <span class="help-block">Inventory Raw Rice</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label class="col-md-3 control-label">Inventory Para Rice*</label>
+                                                <div class="col-md-9">
+                                                    <div class="input-group">
+                                                        <span class="input-group-addon"><span class="fa fa-info"></span></span>
+                                                        <input type="text" class="form-control" id="Inventory_Para_Rice" name="Inventory_Para_Rice" required />
+                                                    </div>
+                                                    <span class="help-block">Inventory Para Rice</span>
+                                                </div>
+                                            </div>
+
                                         </div>
 
                                     </div>
@@ -241,9 +263,11 @@ require('Header.php');
 			var id = document.getElementById('id').value;
             var district = document.getElementById('district').value;
             var milling_capacity = document.getElementById('milling_capacity').value;
+            var Inventory_Raw_Rice = document.getElementById('Inventory_Raw_Rice').value;
+            var Inventory_Para_Rice = document.getElementById('Inventory_Para_Rice').value;
             var performance_factor = document.getElementById('performance_factor').value;
 
-            if (name === '' || type === '' || latitude === '' || longitude === '' || id === '' || district === '' || milling_capacity === '' || performance_factor === '') {
+            if (name === '' || type === '' || latitude === '' || longitude === '' || id === '' || district === '' || milling_capacity === '' || Inventory_Raw_Rice === '' || Inventory_Para_Rice === '' || performance_factor === '') {
                 alert('Please enter all fields');
                 return false;
             }

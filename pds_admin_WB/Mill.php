@@ -85,6 +85,8 @@ require('Header.php');
 												<th style="font-size:15px">Latitude</th>
 												<th style="font-size:15px">Longitude</th>
 												<th style="font-size:15px">Milling Capacity</th>
+												<th style="font-size:15px">Inventory Raw Rice</th>
+												<th style="font-size:15px">Inventory Para Rice</th>
 												<th style="font-size:15px">Performance Factor</th>
 												<th style="font-size:16px">Status</th>
 												<th style="font-size:16px">Change Status</th>
@@ -115,6 +117,8 @@ require('Header.php');
 											"<td>{$row['latitude']}</td>".
 											"<td>{$row['longitude']}</td>".
 											"<td>{$row['milling_capacity']}</td>".
+											"<td>{$row['Inventory_Raw_Rice']}</td>".
+											"<td>{$row['Inventory_Para_Rice']}</td>".
 											"<td>{$row['performance_factor']}</td>".
                                             
 											"<td>$status</td>".

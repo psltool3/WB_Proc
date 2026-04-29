@@ -59,6 +59,8 @@ if (isset($_POST['step']) && $_POST['step'] == 'leg1') {
 												<th style="font-size:15px">Latitude</th>
 												<th style="font-size:15px">Longitude</th>
 												<th style="font-size:15px">Milling Capacity</th>
+												<th style="font-size:15px">Inventory Raw Rice</th>
+												<th style="font-size:15px">Inventory Para Rice</th>
 												<th style="font-size:15px">Performance Factor</th>
 												<th style="font-size:15px">Active</th>
                                             </tr>
@@ -80,6 +82,8 @@ if (isset($_POST['step']) && $_POST['step'] == 'leg1') {
 											"<td>{$row['latitude']}</td>".
 											"<td>{$row['longitude']}</td>".
 											"<td>{$row['milling_capacity']}</td>".
+											"<td>{$row['Inventory_Raw_Rice']}</td>".
+											"<td>{$row['Inventory_Para_Rice']}</td>".
 											"<td>{$row['performance_factor']}</td>".
 											"<td>{$row['active']}</td></tr>";
 										}

@@ -21,6 +21,8 @@ $mapData = [
     "Latitude" => "latitude",
     "Longitude" => "longitude",
     "Milling Capacity" => "milling_capacity",
+    "Inventory Raw Rice" => "Inventory_Raw_Rice",
+    "Inventory Para Rice" => "Inventory_Para_Rice",
     "Performance Factor" => "performance_factor",
 	"Active/Not-Active" => "active"
 ];
@@ -98,11 +100,13 @@ try{
 		$latitude = -5;
 		$longitude = -6;
         $milling_capacity = -7;
-        $performance_factor = -8;
-		$active = -9;
+        $Inventory_Raw_Rice = -8;
+        $Inventory_Para_Rice = -9;
+        $performance_factor = -10;
+		$active = -11;
 		while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
 			if($i>0){
-				if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $milling_capacity<0 or $performance_factor<0 or $active<0){
+				if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $milling_capacity<0 or $Inventory_Raw_Rice<0 or $Inventory_Para_Rice<0 or $performance_factor<0 or $active<0){
 					echo "Error : You have modified Template Header, please check";
 					exit();
 				}
@@ -145,6 +149,20 @@ try{
 					$redirect = 0;
 				}
 
+				// Check Inventory Raw Rice is numeric
+				if (!is_numeric($column[$Inventory_Raw_Rice])) {
+					echo "Error : Inventory Raw Rice must be numeric. Given: " . $column[$Inventory_Raw_Rice];
+					echo "</br>";
+					$redirect = 0;
+				}
+
+				// Check Inventory Para Rice is numeric
+				if (!is_numeric($column[$Inventory_Para_Rice])) {
+					echo "Error : Inventory Para Rice must be numeric. Given: " . $column[$Inventory_Para_Rice];
+					echo "</br>";
+					$redirect = 0;
+				}
+
 				// Check Performance Factor is numeric
 				if (!is_numeric($column[$performance_factor])) {
 					echo "Error : Performance Factor must be numeric. Given: " . $column[$performance_factor];
@@ -183,6 +201,12 @@ try{
                         case $reverseMapData["milling_capacity"]:
                             $milling_capacity = $j;
                             break;
+                        case $reverseMapData["Inventory_Raw_Rice"]:
+                            $Inventory_Raw_Rice = $j;
+                            break;
+                        case $reverseMapData["Inventory_Para_Rice"]:
+                            $Inventory_Para_Rice = $j;
+                            break;
                         case $reverseMapData["performance_factor"]:
                             $performance_factor = $j;
                             break;
@@ -218,11 +242,13 @@ try{
 			$latitude = -5;
 			$longitude = -6;
             $milling_capacity = -7;
-            $performance_factor = -8;
-			$active = -9;
+            $Inventory_Raw_Rice = -8;
+            $Inventory_Para_Rice = -9;
+            $performance_factor = -10;
+			$active = -11;
 			while (($column = fgetcsv($file, 10000, ",")) !== FALSE) {
 				if($i>0){
-					if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $milling_capacity<0 or $performance_factor<0 or $active<0){
+					if($district<0 or $name<0 or $id<0 or $type<0 or $latitude<0 or $longitude<0 or $milling_capacity<0 or $Inventory_Raw_Rice<0 or $Inventory_Para_Rice<0 or $performance_factor<0 or $active<0){
 						echo "Error : You have modified Template Header, please check";
 						exit();
 					}
@@ -236,6 +262,8 @@ try{
 					$Mill->setId($column[$id]);
 					$Mill->setType($column[$type]);
                     $Mill->setMillingCapacity($column[$milling_capacity]);
+                    $Mill->setInventoryRawRice($column[$Inventory_Raw_Rice]);
+                    $Mill->setInventoryParaRice($column[$Inventory_Para_Rice]);
                     $Mill->setPerformanceFactor($column[$performance_factor]);
 					$Mill->setActive($column[$active]);
 					while(true){
@@ -287,6 +315,12 @@ try{
 								break;
                             case $reverseMapData["milling_capacity"]:
                                 $milling_capacity = $j;
+                                break;
+                            case $reverseMapData["Inventory_Raw_Rice"]:
+                                $Inventory_Raw_Rice = $j;
+                                break;
+                            case $reverseMapData["Inventory_Para_Rice"]:
+                                $Inventory_Para_Rice = $j;
                                 break;
                             case $reverseMapData["performance_factor"]:
                                 $performance_factor = $j;
