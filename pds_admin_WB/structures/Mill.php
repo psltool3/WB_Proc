@@ -8,6 +8,8 @@ class Mill {
     public $latitude;
     public $longitude;
     public $milling_capacity;
+    public $inventory_raw_rice;
+    public $inventory_para_rice;
     public $performance_factor;
     public $uniqueid;
     public $active;
@@ -40,6 +42,14 @@ class Mill {
 
     public function getMillingCapacity() {
         return $this->milling_capacity;
+    }
+
+    public function getInventoryRawRice() {
+        return $this->inventory_raw_rice;
+    }
+
+    public function getInventoryParaRice() {
+        return $this->inventory_para_rice;
     }
 
     public function getPerformanceFactor() {
@@ -85,6 +95,14 @@ class Mill {
         $this->milling_capacity = $milling_capacity;
     }
 
+    public function setInventoryRawRice($inventory_raw_rice) {
+        $this->inventory_raw_rice = $inventory_raw_rice;
+    }
+
+    public function setInventoryParaRice($inventory_para_rice) {
+        $this->inventory_para_rice = $inventory_para_rice;
+    }
+
     public function setPerformanceFactor($performance_factor) {
         $this->performance_factor = $performance_factor;
     }
@@ -98,7 +116,7 @@ class Mill {
     }
 
     function insert(Mill $mill){
-        return "INSERT INTO mill (district, name, id, type, latitude, longitude, milling_capacity, performance_factor, uniqueid, active) VALUES ('".$mill->getDistrict()."','".$mill->getName()."','".$mill->getId()."','".$mill->getType()."','".$mill->getLatitude()."','".$mill->getLongitude()."','".$mill->getMillingCapacity()."','".$mill->getPerformanceFactor()."','".$mill->getUniqueid()."','".$mill->getActive()."')";
+        return "INSERT INTO mill (district, name, id, type, latitude, longitude, milling_capacity, Inventory_Raw_Rice, Inventory_Para_Rice, performance_factor, uniqueid, active) VALUES ('".$mill->getDistrict()."','".$mill->getName()."','".$mill->getId()."','".$mill->getType()."','".$mill->getLatitude()."','".$mill->getLongitude()."','".$mill->getMillingCapacity()."','".$mill->getInventoryRawRice()."','".$mill->getInventoryParaRice()."','".$mill->getPerformanceFactor()."','".$mill->getUniqueid()."','".$mill->getActive()."')";
     }
 
     function delete(Mill $mill){
@@ -126,11 +144,11 @@ class Mill {
     }
 
     function update(Mill $mill){
-        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',id = '".$mill->getId()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',milling_capacity = '".$mill->getMillingCapacity()."',performance_factor = '".$mill->getPerformanceFactor()."',active = '".$mill->getActive()."' WHERE uniqueid = '".$mill->getUniqueid()."'";
+        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',id = '".$mill->getId()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',milling_capacity = '".$mill->getMillingCapacity()."',Inventory_Raw_Rice = '".$mill->getInventoryRawRice()."',Inventory_Para_Rice = '".$mill->getInventoryParaRice()."',performance_factor = '".$mill->getPerformanceFactor()."',active = '".$mill->getActive()."' WHERE uniqueid = '".$mill->getUniqueid()."'";
     }
 
     function updateEdit(Mill $mill){
-        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',milling_capacity = '".$mill->getMillingCapacity()."',performance_factor = '".$mill->getPerformanceFactor()."',active = '".$mill->getActive()."' WHERE id = '".$mill->getId()."'";
+        return "UPDATE mill SET district = '".$mill->getDistrict()."',name = '".$mill->getName()."',type = '".$mill->getType()."',latitude = '".$mill->getLatitude()."',longitude = '".$mill->getLongitude()."',milling_capacity = '".$mill->getMillingCapacity()."',Inventory_Raw_Rice = '".$mill->getInventoryRawRice()."',Inventory_Para_Rice = '".$mill->getInventoryParaRice()."',performance_factor = '".$mill->getPerformanceFactor()."',active = '".$mill->getActive()."' WHERE id = '".$mill->getId()."'";
     }
 }
 
