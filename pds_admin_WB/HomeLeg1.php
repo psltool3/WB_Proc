@@ -409,7 +409,7 @@ require('Header.php');
 			<!-- START SIMPLE DATATABLE -->
 			<div class="panel panel-default">
 				<div class="panel-heading" style="text-align: center;">
-					<h1 style="font-weight: bold; color: #335566;">Chhattisgarh PDS Route Optimisation</h1>
+					<h1 style="font-weight: bold; color: #335566;">West Bengal PDS Route Optimisation</h1>
 					<h1 style="font-weight: bold; color: #ff7066;">Kindly Optimised the Leg2-Mill to Warehouse</h1>
 
 				</div>

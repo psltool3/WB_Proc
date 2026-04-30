@@ -1026,7 +1026,7 @@ def save_to_database(month, year, day):
         pc_drop_query = 'DROP TABLE IF EXISTS ' + pc_table;
         cursor.execute(pc_drop_query)
         connection.commit()
-        create_pc_query = ("CREATE TABLE " + pc_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, id VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, mota VARCHAR(100) NOT NULL, patla VARCHAR(100) NOT NULL, saran VARCHAR(100) NOT NULL, active VARCHAR(10) NOT NULL DEFAULT '1')")
+        create_pc_query = ("CREATE TABLE " + pc_table + " (uniqueid VARCHAR(15) NOT NULL, district VARCHAR(255) NOT NULL, name VARCHAR(255) NOT NULL, id VARCHAR(255) NOT NULL, latitude VARCHAR(255) NOT NULL, longitude VARCHAR(255) NOT NULL, Paddy_Arrival VARCHAR(255) NOT NULL, active tinyint(1) NOT NULL DEFAULT '1')")
         cursor.execute(create_pc_query)
         connection.commit()
         copy_pc_data = ("INSERT INTO " + pc_table + " SELECT * FROM pc WHERE active='1'")
@@ -1035,10 +1035,10 @@ def save_to_database(month, year, day):
         
         mill_drop_query = 'DROP TABLE IF EXISTS ' + mill_table;
         cursor.execute(mill_drop_query)
-        create_mill_query = ("CREATE TABLE " + mill_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, name VARCHAR(255) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, milling_capacity VARCHAR(100) NOT NULL, performance_factor INT(11), active VARCHAR(10) NOT NULL DEFAULT '1')")
+        create_mill_query = ("CREATE TABLE " + mill_table + " (uniqueid VARCHAR(50) NOT NULL, district VARCHAR(100) NOT NULL, name VARCHAR(255) NOT NULL, id VARCHAR(10) NOT NULL, type VARCHAR(50) NOT NULL, latitude VARCHAR(50) NOT NULL, longitude VARCHAR(50) NOT NULL, milling_capacity VARCHAR(50) NOT NULL , Inventory_Raw_Rice VARCHAR(50) NOT NULL,Inventory_Para_Rice VARCHAR(50) NOT NULL, performance_factor decimal(10,3), active VARCHAR(10) NOT NULL DEFAULT '1')")
         cursor.execute(create_mill_query)
         connection.commit()
-        copy_mill_data = ("INSERT INTO " + mill_table + " SELECT uniqueid, district, name, id, type, latitude, longitude, milling_capacity, performance_factor, active FROM mill WHERE active='1'")
+        copy_mill_data = ("INSERT INTO " + mill_table + " SELECT uniqueid, district, name, id, type, latitude, longitude, milling_capacity, Inventory_Raw_Rice, Inventory_Para_Rice, performance_factor, active FROM mill WHERE active='1'")
         cursor.execute(copy_mill_data)
         connection.commit()
         
