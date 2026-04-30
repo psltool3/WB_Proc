@@ -1360,7 +1360,7 @@ def processFile():
                 Variable1.append(str(FCI['WH_ID'][i]) + '_'
                                  + str(FCI['WH_District'][i]) + '_'
                                  + str(FPS['FPS_ID'][j]) + '_'
-                                 + str(FPS['FPS_District'][j]) + '_Mota')
+                                 + str(FPS['FPS_District'][j]) + '_Paddy')
                                  
          
         # Variables for Wheat from lEVEL2 TO FPS
@@ -1396,29 +1396,107 @@ def processFile():
 
         # Demand Constraints for Wheat
         
-        
+        FCI.rename(columns={'Paddy_Procurement': 'Storage_Capacity',}, inplace=True)
 
+
+        FPS.rename(columns={
+            'Milling_Process': 'Allocation_Wheat',
+            'Mill_Capacity': 'Capacity',
+        
+            }, inplace=True)
+
+
+        FPS['Demand'] = FPS['Allocation_Wheat']
+
+        # Ensure numeric
+        import numpy as np
+
+        # Ensure numeric
+        FPS['Factor'] = FPS['Factor'].astype(float)
+        FPS['InvFactor'] = 1.0 / FPS['Factor']
+
+        # Initialize Minimum column
+        FPS['Minimum'] = 0.0
+
+        # District-wise minimum allocation logic
+        for d in FCI['WH_District'].unique():
+
+            # ---- Total PC supply in district ----
+            total_supply_d = FCI.loc[
+                FCI['WH_District'] == d, 'Storage_Capacity'
+            ].sum()
+
+            if total_supply_d <= 0:
+                continue
+
+            # ---- Mills in same district ----
+            mask = FPS['FPS_District'] == d
+            mills_d = FPS.loc[mask].copy()
+
+            if mills_d.empty:
+                continue
+
+            # ---- Normalize inverse factor (higher priority = higher InvFactor) ----
+            total_inv = mills_d['InvFactor'].sum()
+            mills_d['Weight'] = mills_d['InvFactor'] / total_inv
+
+            # ---- Raw minimum allocation ----
+            mills_d['Raw_Min'] = mills_d['Weight'] * total_supply_d
+
+            # ---- Cap by mill capacity ----
+            mills_d['Minimum'] = np.minimum(
+                mills_d['Raw_Min'],
+                mills_d['Capacity']
+            )
+
+            # ---- Write back to FPS ----
+            FPS.loc[mask, 'Minimum'] = mills_d['Minimum'].values
+
+
+
+        # TotalSupply=FCI['Storage_Capacity'].sum()
+        # TotalDemand=FPS['Minimum'] .sum()
+        districts = FCI['WH_District'].unique()
+        for d in districts:
+            total_supply = FCI.loc[FCI['WH_District'] == d, 'Storage_Capacity'].sum()
+            total_demand = FPS.loc[FPS['FPS_District'] == d, 'Minimum'].sum()
+            
+            if total_supply >= total_demand:
+                # Block only inter-district inflows for this district
+                for j in range(len(DV_Variables1)):
+                    name = str(DV_Variables1[j])
+                    lst = name.split("_")
+                    # lst8[2] = warehouse district, lst8[4] = FPS district
+                    if lst[4] == d and lst[2] != lst[4]:
+                        model += DV_Variables1[j] == 0
+
+            else:
+                # Case 2: supply < demand → block inter-district outflows from this district
+                for j in range(len(DV_Variables1)):
+                    name = str(DV_Variables1[j])
+                    lst = name.split("_")
+                    # forbid warehouses of district d from sending to other districts
+                    if lst[2] == d and lst[4] != d:
+                        model += DV_Variables1[j] == 0
+                        
+        # for i in range(len(FPS['FPS_ID'])):
+        #         model += lpSum(Allocation1[j][i] for j in range(len(FCI['WH_ID'
+        #                        ]))) <= FPS['Demand'][i]    
+                
+        
         for i in range(len(FPS['FPS_ID'])):
-            model += lpSum(Allocation1[j][i] for j in range(len(FCI['WH_ID'
-                           ]))) <= FPS['Storage_Mota'][i]
-                           
-        for i in range(len(FPS['FPS_ID'])):
-            model += lpSum(Allocation1[j][i] for j in range(len(FCI['WH_ID'
-                           ]))) >= FPS['Min_Mota'][i]                   
-                         
+                model += lpSum(Allocation1[j][i] for j in range(len(FCI['WH_ID'
+                            ]))) >= FPS['Minimum'][i]   
+        
+        # for i in range(len(FCI['WH_ID'])):
+        #         model += (lpSum(Allocation1[i][j] for j in range(len(FPS['FPS_ID'
+        #                        ]))) <= FCI['Storage_Capacity'][i])
 
         for i in range(len(FCI['WH_ID'])):
-            model += (lpSum(Allocation1[i][j] for j in range(len(FPS['FPS_ID'
-                           ])))  <= FCI['Procurement_Mota'][i])
-            model += (lpSum(Allocation1[i][j] for j in range(len(FPS['FPS_ID'
-                           ])))  >= FCI['Procurement_Mota'][i]) 
+                model += (lpSum(Allocation1[i][j] for j in range(len(FPS['FPS_ID'
+                            ]))) <= FCI['Storage_Capacity'][i]) 
+
         
-        
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(FPS['FPS_ID'])):
-                if FCI['WH_District'][i] != FPS['FPS_District'][j]:
-                    model += Allocation1[i][j] == 0   
-                    
         
         model.solve(CPLEX_CMD(options=[
             "set mip tolerances mipgap 0.01",
@@ -1498,11 +1576,11 @@ def processFile():
 
         
 
-        df1 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg2.xlsx', sheet_name='BG_FPS')
+        df4 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg2.xlsx', sheet_name='BG_FPS')
        
 
         # Combine all rows
-        combined_df = pd.concat([df1], ignore_index=True)
+        # combined_df = pd.concat([df1], ignore_index=True)
         
         def convert_to_numeric(value):
             try:
@@ -1511,18 +1589,18 @@ def processFile():
                 return value
         
         
-        combined_df['WH_ID'] = combined_df['WH_ID'].apply(convert_to_numeric)
-        combined_df['FPS_ID'] = combined_df['FPS_ID'].apply(convert_to_numeric)
+        # combined_df['WH_ID'] = combined_df['WH_ID'].apply(convert_to_numeric)
+        # combined_df['FPS_ID'] = combined_df['FPS_ID'].apply(convert_to_numeric)
 
         # Write to a new Excel file with one sheet
-        combined_df.to_excel(
-            'Backend//Tagging_Sheet_Pre_leg2.xlsx',
-            sheet_name='BG_FPS',
-            index=False
-        )
+        # combined_df.to_excel(
+        #     'Backend//Tagging_Sheet_Pre_leg2.xlsx',
+        #     sheet_name='BG_FPS',
+        #     index=False
+        # )
 
         # Read back the combined file
-        df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg2.xlsx', sheet_name='BG_FPS')
+        # df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg2.xlsx', sheet_name='BG_FPS')
          
         USN = pd.ExcelFile('Backend//Data_1.xlsx')
         FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
@@ -1536,10 +1614,10 @@ def processFile():
             json_object = json.loads(json_data)
             return json.dumps(json_object, indent=1)
         
-        df31['WH_ID'] = df31['WH_ID'].astype(str)
+        df4['WH_ID'] = df4['WH_ID'].astype(str)
         FCI['WH_ID'] = FCI['WH_ID'].astype(str)
-        df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
-        #df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
+        df4 = pd.merge(df4, FCI, on='WH_ID', how='inner')
+        #df4 = pd.merge(df4, FCI, on='WH_ID', how='inner')
         df4 = df4[[
             'WH_ID',
             'WH_Name',
@@ -1567,9 +1645,9 @@ def processFile():
             ]]
         df51.insert(0, 'Scenario', 'Optimized')
         df51.insert(1, 'From', 'PC')
-        df51.insert(2, 'From_State', 'Chattisgarh')
+        df51.insert(2, 'From_State', 'West Bengal')
         df51.insert(7, 'To', 'Mill')
-        df51.insert(8, 'To_State', 'Chattisgarh')
+        df51.insert(8, 'To_State', 'West Bengal')
         
         df51.rename(columns={
             'WH_ID': 'From_ID',
@@ -1894,317 +1972,317 @@ def processFile():
 
         # Save Excel
         # output_path = 'Backend//Result_Sheet_leg1.xlsx'
-        df10.to_excel('Backend//Result_Sheet1F.xlsx', sheet_name='Warehouse_FPS')
+        df10.to_excel('Backend//Result_Sheet1.xlsx', sheet_name='Warehouse_FPS')
         
         
         
-        input = pd.ExcelFile('Backend//Data_1.xlsx')
-        node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
-        node2 = pd.read_excel(input,sheet_name="A.2 FPS")
+#         input = pd.ExcelFile('Backend//Data_1.xlsx')
+#         node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
+#         node2 = pd.read_excel(input,sheet_name="A.2 FPS")
 
-        node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
-        node2 = pd.read_excel(input,sheet_name="A.2 FPS")
-        dist = [[0 for a in range(len(node2["FPS_ID"]))] for b in range(len(node1["WH_ID"]))]
-        phi_1 = []
-        phi_2 = []
-        delta_phi = []
-        delta_lambda = []
-        R = 6371 
+#         node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
+#         node2 = pd.read_excel(input,sheet_name="A.2 FPS")
+#         dist = [[0 for a in range(len(node2["FPS_ID"]))] for b in range(len(node1["WH_ID"]))]
+#         phi_1 = []
+#         phi_2 = []
+#         delta_phi = []
+#         delta_lambda = []
+#         R = 6371 
 
-        for i in node1.index:
-            for j in node2.index:
-                phi_1=math.radians(node1["WH_Lat"][i])
-                phi_2=math.radians(node2["FPS_Lat"][j])
-                delta_phi=math.radians(node2["FPS_Lat"][j]-node1["WH_Lat"][i])
-                delta_lambda=math.radians(node2["FPS_Long"][j]-node1["WH_Long"][i])
-                x=math.sin(delta_phi / 2.0) ** 2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0) ** 2
-                y=2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
-                dist[i][j]=R*y
+#         for i in node1.index:
+#             for j in node2.index:
+#                 phi_1=math.radians(node1["WH_Lat"][i])
+#                 phi_2=math.radians(node2["FPS_Lat"][j])
+#                 delta_phi=math.radians(node2["FPS_Lat"][j]-node1["WH_Lat"][i])
+#                 delta_lambda=math.radians(node2["FPS_Long"][j]-node1["WH_Long"][i])
+#                 x=math.sin(delta_phi / 2.0) ** 2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0) ** 2
+#                 y=2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
+#                 dist[i][j]=R*y
                 
         
-        FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
-        FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
+#         FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
+#         FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
 
-        FCI['WH_District'] = FCI['WH_District'].apply(lambda x: x.replace(' ', ''))
-        FPS['FPS_District'] = FPS['FPS_District'].apply(lambda x: x.replace(' ', ''))
+#         FCI['WH_District'] = FCI['WH_District'].apply(lambda x: x.replace(' ', ''))
+#         FPS['FPS_District'] = FPS['FPS_District'].apply(lambda x: x.replace(' ', ''))
         
 
         
-        model = LpProblem('Supply-Demand-Problem', LpMinimize)
+#         model = LpProblem('Supply-Demand-Problem', LpMinimize)
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
 
-        Variable2 = []
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(FPS['FPS_ID'])):
-                Variable2.append(str(FCI['WH_ID'][i]) + '_'
-                                 + str(FCI['WH_District'][i]) + '_'
-                                 + str(FPS['FPS_ID'][j]) + '_'
-                                 + str(FPS['FPS_District'][j]) + '_Saran')
+#         Variable2 = []
+#         for i in range(len(FCI['WH_ID'])):
+#             for j in range(len(FPS['FPS_ID'])):
+#                 Variable2.append(str(FCI['WH_ID'][i]) + '_'
+#                                  + str(FCI['WH_District'][i]) + '_'
+#                                  + str(FPS['FPS_ID'][j]) + '_'
+#                                  + str(FPS['FPS_District'][j]) + '_Saran')
                                  
          
-        # Variables for Wheat from lEVEL2 TO FPS
+#         # Variables for Wheat from lEVEL2 TO FPS
 
-        DV_Variables2 = LpVariable.matrix('X', Variable2, cat='float',
-                lowBound=0)
-        Allocation2 = np.array(DV_Variables2).reshape(len(FCI['WH_ID']),
-                len(FPS['FPS_ID']))
+#         DV_Variables2 = LpVariable.matrix('X', Variable2, cat='float',
+#                 lowBound=0)
+#         Allocation2 = np.array(DV_Variables2).reshape(len(FCI['WH_ID']),
+#                 len(FPS['FPS_ID']))
                 
                 
         
         
-        allCombination2 = []
+#         allCombination2 = []
         
         
 
-        for i in range(len(dist)):
-            for j in range(len(FPS['FPS_ID'])):
-                allCombination2.append(Allocation2[i][j] * dist[i][j])
+#         for i in range(len(dist)):
+#             for j in range(len(FPS['FPS_ID'])):
+#                 allCombination2.append(Allocation2[i][j] * dist[i][j])
                 
                        
         
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
 
-        model += lpSum(allCombination2)
+#         model += lpSum(allCombination2)
 
-        # Demand Constraints for Wheat
+#         # Demand Constraints for Wheat
         
         
 
-        for i in range(len(FPS['FPS_ID'])):
-            model += lpSum(Allocation2[j][i] for j in range(len(FCI['WH_ID'
-                           ]))) <= FPS['Storage_Saran'][i]
+#         for i in range(len(FPS['FPS_ID'])):
+#             model += lpSum(Allocation2[j][i] for j in range(len(FCI['WH_ID'
+#                            ]))) <= FPS['Storage_Saran'][i]
                            
-        for i in range(len(FPS['FPS_ID'])):
-            model += lpSum(Allocation2[j][i] for j in range(len(FCI['WH_ID'
-                           ]))) >= FPS['Min_Saran'][i]                   
+#         for i in range(len(FPS['FPS_ID'])):
+#             model += lpSum(Allocation2[j][i] for j in range(len(FCI['WH_ID'
+#                            ]))) >= FPS['Min_Saran'][i]                   
                          
 
-        for i in range(len(FCI['WH_ID'])):
-            model += (lpSum(Allocation2[i][j] for j in range(len(FPS['FPS_ID'
-                           ])))  <= FCI['Procutement_Saran'][i])
-            model += (lpSum(Allocation2[i][j] for j in range(len(FPS['FPS_ID'
-                           ])))  >= FCI['Procutement_Saran'][i]) 
+#         for i in range(len(FCI['WH_ID'])):
+#             model += (lpSum(Allocation2[i][j] for j in range(len(FPS['FPS_ID'
+#                            ])))  <= FCI['Procutement_Saran'][i])
+#             model += (lpSum(Allocation2[i][j] for j in range(len(FPS['FPS_ID'
+#                            ])))  >= FCI['Procutement_Saran'][i]) 
         
         
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(FPS['FPS_ID'])):
-                if FCI['WH_District'][i] != FPS['FPS_District'][j]:
-                    model += Allocation2[i][j] == 0   
+#         for i in range(len(FCI['WH_ID'])):
+#             for j in range(len(FPS['FPS_ID'])):
+#                 if FCI['WH_District'][i] != FPS['FPS_District'][j]:
+#                     model += Allocation2[i][j] == 0   
                     
-        model.solve(CPLEX_CMD(options=[
-            "set mip tolerances mipgap 0.01",
-            "set emphasis memory y",
-            "set mip strategy file 3",
-            "set workmem 2048"
-        ]))
+#         model.solve(CPLEX_CMD(options=[
+#             "set mip tolerances mipgap 0.01",
+#             "set emphasis memory y",
+#             "set mip strategy file 3",
+#             "set workmem 2048"
+#         ]))
         
         
-        status = LpStatus[model.status]
+#         status = LpStatus[model.status]
 
-        if status != "Optimal":
-            print("Optimization failed:", status)
+#         if status != "Optimal":
+#             print("Optimization failed:", status)
 
-            data = {
-                "status": 0,
-                "message": "Infeasible or Unbounded Solution"
-            }
+#             data = {
+#                 "status": 0,
+#                 "message": "Infeasible or Unbounded Solution"
+#             }
 
-            return json.dumps(data, indent=1)
+#             return json.dumps(data, indent=1)
  
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
 
         
 
-        Output_File = open('Backend//Inter_District1_leg3.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
+#         Output_File = open('Backend//Inter_District1_leg3.csv', 'w')
+#         for v in model.variables():
+#             if v.value() > 0:
+#                 Output_File.write(v.name + '\t' + str(v.value()) + '\n')
 
-        Output_File = open('Backend//Inter_District1_leg3.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
+#         Output_File = open('Backend//Inter_District1_leg3.csv', 'w')
+#         for v in model.variables():
+#             if v.value() > 0:
+#                 Output_File.write(v.name + '\t' + str(v.value()) + '\n')
 
-        df9 = pd.read_csv('Backend//Inter_District1_leg3.csv',header=None)
+#         df9 = pd.read_csv('Backend//Inter_District1_leg3.csv',header=None)
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)        
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)        
 
-        df9.columns = ['Tagging']
-        df9[[
-            'Var',
-            'WH_ID',
-            'WH_D',
-            'FPS_ID',
-            'FPS_D',
-            'commodity_Value',
-            ]] = df9[df9.columns[0]].str.split('_', n=6, expand=True)
-        del df9[df9.columns[0]]
-        df9[['commodity', 'Values']] = df9['commodity_Value'
-                ].str.split('\\t', n=1, expand=True)
-        del df9['commodity_Value']
-        df9 = df9.drop(np.where(df9['commodity'] == 'Wheat1')[0])
+#         df9.columns = ['Tagging']
+#         df9[[
+#             'Var',
+#             'WH_ID',
+#             'WH_D',
+#             'FPS_ID',
+#             'FPS_D',
+#             'commodity_Value',
+#             ]] = df9[df9.columns[0]].str.split('_', n=6, expand=True)
+#         del df9[df9.columns[0]]
+#         df9[['commodity', 'Values']] = df9['commodity_Value'
+#                 ].str.split('\\t', n=1, expand=True)
+#         del df9['commodity_Value']
+#         df9 = df9.drop(np.where(df9['commodity'] == 'Wheat1')[0])
         
         
-        def convert_to_numeric(value):
-            try:
-                return pd.to_numeric(value)
-            except ValueError:
-                return value
+#         def convert_to_numeric(value):
+#             try:
+#                 return pd.to_numeric(value)
+#             except ValueError:
+#                 return value
                 
-        df9.to_excel('Backend//Tagging_Sheet_Pre_leg3.xlsx', sheet_name='BG_FPS')            
+#         df9.to_excel('Backend//Tagging_Sheet_Pre_leg3.xlsx', sheet_name='BG_FPS')            
 
 
 
 
         
 
-        df1 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg3.xlsx', sheet_name='BG_FPS')
+#         df1 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg3.xlsx', sheet_name='BG_FPS')
        
 
-        # Combine all rows
-        combined_df = pd.concat([df1], ignore_index=True)
+#         # Combine all rows
+#         combined_df = pd.concat([df1], ignore_index=True)
         
-        def convert_to_numeric(value):
-            try:
-                return pd.to_numeric(value)
-            except ValueError:
-                return value
+#         def convert_to_numeric(value):
+#             try:
+#                 return pd.to_numeric(value)
+#             except ValueError:
+#                 return value
         
         
-        combined_df['WH_ID'] = combined_df['WH_ID'].apply(convert_to_numeric)
-        combined_df['FPS_ID'] = combined_df['FPS_ID'].apply(convert_to_numeric)
+#         combined_df['WH_ID'] = combined_df['WH_ID'].apply(convert_to_numeric)
+#         combined_df['FPS_ID'] = combined_df['FPS_ID'].apply(convert_to_numeric)
 
-        # Write to a new Excel file with one sheet
-        combined_df.to_excel(
-            'Backend//Tagging_Sheet_Pre_leg3.xlsx',
-            sheet_name='BG_FPS',
-            index=False
-        )
+#         # Write to a new Excel file with one sheet
+#         combined_df.to_excel(
+#             'Backend//Tagging_Sheet_Pre_leg3.xlsx',
+#             sheet_name='BG_FPS',
+#             index=False
+#         )
 
-        # Read back the combined file
-        df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg3.xlsx', sheet_name='BG_FPS')
+#         # Read back the combined file
+#         df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg3.xlsx', sheet_name='BG_FPS')
          
-        USN = pd.ExcelFile('Backend//Data_1.xlsx')
-        FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
-        FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
+#         USN = pd.ExcelFile('Backend//Data_1.xlsx')
+#         FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
+#         FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
         
-        df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
-        #df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
-        df4 = df4[[
-            'WH_ID',
-            'WH_Name',
-            'WH_District',
-            'WH_Lat',
-            'WH_Long',
-            'FPS_ID',
-            'commodity',
-            'Values',
-            ]]
-        df4 = pd.merge(df4, FPS, on='FPS_ID', how='inner')
-        df51 = df4[[
-            'WH_ID',
-            'WH_Name',
-            'WH_District', 
-            'WH_Lat',
-            'WH_Long',
-            'FPS_ID',
-            'FPS_Name',
-            'FPS_District',
-            'FPS_Lat',
-            'FPS_Long',
-            'commodity',
-            'Values',
-            ]]
-        df51.insert(0, 'Scenario', 'Optimized')
-        df51.insert(1, 'From', 'PC')
-        df51.insert(2, 'From_State', 'Chattisgarh')
-        df51.insert(7, 'To', 'Mill')
-        df51.insert(8, 'To_State', 'Chattisgarh')
+#         df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
+#         #df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
+#         df4 = df4[[
+#             'WH_ID',
+#             'WH_Name',
+#             'WH_District',
+#             'WH_Lat',
+#             'WH_Long',
+#             'FPS_ID',
+#             'commodity',
+#             'Values',
+#             ]]
+#         df4 = pd.merge(df4, FPS, on='FPS_ID', how='inner')
+#         df51 = df4[[
+#             'WH_ID',
+#             'WH_Name',
+#             'WH_District', 
+#             'WH_Lat',
+#             'WH_Long',
+#             'FPS_ID',
+#             'FPS_Name',
+#             'FPS_District',
+#             'FPS_Lat',
+#             'FPS_Long',
+#             'commodity',
+#             'Values',
+#             ]]
+#         df51.insert(0, 'Scenario', 'Optimized')
+#         df51.insert(1, 'From', 'PC')
+#         df51.insert(2, 'From_State', 'Chattisgarh')
+#         df51.insert(7, 'To', 'Mill')
+#         df51.insert(8, 'To_State', 'Chattisgarh')
         
-        df51.rename(columns={
-            'WH_ID': 'From_ID',
-            'WH_Name': 'From_Name',
-            'WH_Lat': 'From_Lat',
-            'WH_Long': 'From_Long',
+#         df51.rename(columns={
+#             'WH_ID': 'From_ID',
+#             'WH_Name': 'From_Name',
+#             'WH_Lat': 'From_Lat',
+#             'WH_Long': 'From_Long',
            
-            }, inplace=True)
-        df51.rename(columns={
-            'FPS_ID': 'To_ID',
-            'FPS_Name': 'To_Name',
-            'FPS_Lat': 'To_Lat',
-            'FPS_Long': 'To_Long',
+#             }, inplace=True)
+#         df51.rename(columns={
+#             'FPS_ID': 'To_ID',
+#             'FPS_Name': 'To_Name',
+#             'FPS_Lat': 'To_Lat',
+#             'FPS_Long': 'To_Long',
             
-            'Values':'quantity',
-            }, inplace=True)
-        df51.rename(columns={'WH_District': 'From_District',
-                   'FPS_District': 'To_District'}, inplace=True)
-        df51 = df51.loc[:, [
-            'Scenario',
-            'From',
-            'From_State',
-            'From_District',
-            'From_ID',
-            'From_Name',
-            'From_Lat',
-            'From_Long',
-            'To',
-            'To_ID',
-            'To_Name',
-            'To_State',
-            'To_District',
-            'To_Lat',
-            'To_Long',
-            'commodity',
-            'quantity',
-            ]]
-        def convert_to_numeric(value):
-            try:
-                return pd.to_numeric(value)
-            except ValueError:
-                return value
+#             'Values':'quantity',
+#             }, inplace=True)
+#         df51.rename(columns={'WH_District': 'From_District',
+#                    'FPS_District': 'To_District'}, inplace=True)
+#         df51 = df51.loc[:, [
+#             'Scenario',
+#             'From',
+#             'From_State',
+#             'From_District',
+#             'From_ID',
+#             'From_Name',
+#             'From_Lat',
+#             'From_Long',
+#             'To',
+#             'To_ID',
+#             'To_Name',
+#             'To_State',
+#             'To_District',
+#             'To_Lat',
+#             'To_Long',
+#             'commodity',
+#             'quantity',
+#             ]]
+#         def convert_to_numeric(value):
+#             try:
+#                 return pd.to_numeric(value)
+#             except ValueError:
+#                 return value
                 
         
-        df51['From_ID'] = df51['From_ID'].apply(convert_to_numeric)
-        df51['To_ID'] = df51['To_ID'].apply(convert_to_numeric)   
+#         df51['From_ID'] = df51['From_ID'].apply(convert_to_numeric)
+#         df51['To_ID'] = df51['To_ID'].apply(convert_to_numeric)   
         
-        df51.to_excel('Backend//Tagging_Sheet_Pre12.xlsx', sheet_name='BG_FPS1')
-        data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre12.xlsx")
-        df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
-        data1.close()
+#         df51.to_excel('Backend//Tagging_Sheet_Pre12.xlsx', sheet_name='BG_FPS1')
+#         data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre12.xlsx")
+#         df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
+#         data1.close()
         
         
         
@@ -2213,582 +2291,582 @@ def processFile():
         
         
         
-        input = pd.ExcelFile('Backend/Data_1.xlsx')
-        node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
-        node1["concatenate"]= node1['WH_Lat'].round(3).astype(str) + ',' + node1['WH_Long'].round(3).astype(str)
+#         input = pd.ExcelFile('Backend/Data_1.xlsx')
+#         node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
+#         node1["concatenate"]= node1['WH_Lat'].round(3).astype(str) + ',' + node1['WH_Long'].round(3).astype(str)
         
-        node2 = pd.read_excel(input,sheet_name="A.2 FPS")
-        node2["concatenate1"]= node2['FPS_Lat'].round(3).astype(str) + ',' + node2['FPS_Long'].round(3).astype(str)
+#         node2 = pd.read_excel(input,sheet_name="A.2 FPS")
+#         node2["concatenate1"]= node2['FPS_Lat'].round(3).astype(str) + ',' + node2['FPS_Long'].round(3).astype(str)
         
-        DistanceBing = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='BG_BG')
-        Warehouse = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='Warehouse')
-        FPS = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='FPS')
+#         DistanceBing = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='BG_BG')
+#         Warehouse = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='Warehouse')
+#         FPS = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='FPS')
        
         
-        Warehouse['Lat_Long_r'] = (
-            Warehouse['Lat_Long']
-            .str.split(',', expand=True)
-            .apply(pd.to_numeric, errors='coerce')
-            .round(3)
-            .astype(str)
-            .agg(','.join, axis=1)
-        )
+#         Warehouse['Lat_Long_r'] = (
+#             Warehouse['Lat_Long']
+#             .str.split(',', expand=True)
+#             .apply(pd.to_numeric, errors='coerce')
+#             .round(3)
+#             .astype(str)
+#             .agg(','.join, axis=1)
+#         )
         
-        FPS['Lat_Long_r'] = (
-            FPS['Lat_Long']
-            .str.split(',', expand=True)
-            .apply(pd.to_numeric, errors='coerce')
-            .round(3)
-            .astype(str)
-            .agg(','.join, axis=1)
-        )
+#         FPS['Lat_Long_r'] = (
+#             FPS['Lat_Long']
+#             .str.split(',', expand=True)
+#             .apply(pd.to_numeric, errors='coerce')
+#             .round(3)
+#             .astype(str)
+#             .agg(','.join, axis=1)
+#         )
 
         
-        node1 = node1[['WH_ID', 'WH_Lat', 'WH_Long','concatenate']]
-        War = pd.merge(node1, Warehouse, on='WH_ID')
-        df1_w = War[War['concatenate'] != War['Lat_Long_r']]
-        Warehouse_ID = df1_w['WH_ID'].unique()
+#         node1 = node1[['WH_ID', 'WH_Lat', 'WH_Long','concatenate']]
+#         War = pd.merge(node1, Warehouse, on='WH_ID')
+#         df1_w = War[War['concatenate'] != War['Lat_Long_r']]
+#         Warehouse_ID = df1_w['WH_ID'].unique()
         
         
         
-        node2 = node2[['FPS_ID', 'FPS_Lat', 'FPS_Long','concatenate1']]
-        FPS1 = pd.merge(node2, FPS, on='FPS_ID')
-        df1_f = FPS1[FPS1['concatenate1'] != FPS1['Lat_Long_r']]
-        FPS_ID = df1_f['FPS_ID'].unique()
+#         node2 = node2[['FPS_ID', 'FPS_Lat', 'FPS_Long','concatenate1']]
+#         FPS1 = pd.merge(node2, FPS, on='FPS_ID')
+#         df1_f = FPS1[FPS1['concatenate1'] != FPS1['Lat_Long_r']]
+#         FPS_ID = df1_f['FPS_ID'].unique()
 
 
-        BG_BG = DistanceBing
-        Distance1 = BG_BG.drop(columns=BG_BG.columns[BG_BG.columns.isin(Warehouse_ID)])
-        Distance2 =Distance1.T
-        Distance3 = Distance2.drop(columns=Distance2.columns[Distance2.columns.isin(FPS_ID)])
-        Distance3 = Distance3.T
-        with pd.ExcelWriter('Backend//Chattisgarh_Distance_L2.xlsx') as writer:
-            Distance3.to_excel(writer, sheet_name='BG_BG',index=False)
+#         BG_BG = DistanceBing
+#         Distance1 = BG_BG.drop(columns=BG_BG.columns[BG_BG.columns.isin(Warehouse_ID)])
+#         Distance2 =Distance1.T
+#         Distance3 = Distance2.drop(columns=Distance2.columns[Distance2.columns.isin(FPS_ID)])
+#         Distance3 = Distance3.T
+#         with pd.ExcelWriter('Backend//Chattisgarh_Distance_L2.xlsx') as writer:
+#             Distance3.to_excel(writer, sheet_name='BG_BG',index=False)
             
 
-        Cost = pd.ExcelFile("Backend//Chattisgarh_Distance_L2.xlsx")
-        BG_BG = pd.read_excel(Cost,sheet_name="BG_BG")
-        Cost.close()
-        data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre12.xlsx")
-        df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
-        data1.close()
+#         Cost = pd.ExcelFile("Backend//Chattisgarh_Distance_L2.xlsx")
+#         BG_BG = pd.read_excel(Cost,sheet_name="BG_BG")
+#         Cost.close()
+#         data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre12.xlsx")
+#         df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
+#         data1.close()
 
-        Distance_BG_BG = {}
-        column_list_BG_BG = list(BG_BG.columns.astype(str))
-        row_list_BG_BG = list(BG_BG.iloc[:, 0].astype(str))
+#         Distance_BG_BG = {}
+#         column_list_BG_BG = list(BG_BG.columns.astype(str))
+#         row_list_BG_BG = list(BG_BG.iloc[:, 0].astype(str))
 
-        for ind in df5.index:
-            from_code = df5['From_ID'][ind]
-            to_code = df5['To_ID'][ind]
-            from_code_str = str(from_code)
-            to_code_str = str(to_code)
+#         for ind in df5.index:
+#             from_code = df5['From_ID'][ind]
+#             to_code = df5['To_ID'][ind]
+#             from_code_str = str(from_code)
+#             to_code_str = str(to_code)
             
-            if to_code_str in row_list_BG_BG and from_code_str in column_list_BG_BG:
-                index_i = row_list_BG_BG.index(to_code_str)
-                index_j = column_list_BG_BG.index(from_code_str)
-                key = to_code_str + "_" + from_code_str
-                Distance_BG_BG[key] = BG_BG.iloc[index_i, index_j] 
+#             if to_code_str in row_list_BG_BG and from_code_str in column_list_BG_BG:
+#                 index_i = row_list_BG_BG.index(to_code_str)
+#                 index_j = column_list_BG_BG.index(from_code_str)
+#                 key = to_code_str + "_" + from_code_str
+#                 Distance_BG_BG[key] = BG_BG.iloc[index_i, index_j] 
                 
                 
-        df5["Tagging"] = df5['To_ID'].astype(str) + '_' + df5['From_ID'].astype(str)
-        df5['Distance'] = df5['Tagging'].map(Distance_BG_BG)
-        df5.fillna('shallu', inplace=True)
-        df5.to_excel('Backend//Result_Sheet13.xlsx', sheet_name='Warehouse_FPS', index=False)        
+#         df5["Tagging"] = df5['To_ID'].astype(str) + '_' + df5['From_ID'].astype(str)
+#         df5['Distance'] = df5['Tagging'].map(Distance_BG_BG)
+#         df5.fillna('shallu', inplace=True)
+#         df5.to_excel('Backend//Result_Sheet13.xlsx', sheet_name='Warehouse_FPS', index=False)        
         
         
         
         
         
-# ----------------------------------------------------------------------------------------------------------------------------------------------
-        Result_Sheet1 = pd.ExcelFile("Backend//Result_Sheet13.xlsx")
-        df6 = pd.read_excel(Result_Sheet1, sheet_name="Warehouse_FPS")
+# # ----------------------------------------------------------------------------------------------------------------------------------------------
+#         Result_Sheet1 = pd.ExcelFile("Backend//Result_Sheet13.xlsx")
+#         df6 = pd.read_excel(Result_Sheet1, sheet_name="Warehouse_FPS")
 
-        # Filter rows where Distance == 'shallu'
-        df7 = df6.loc[df6['Distance'] == "shallu"]
+#         # Filter rows where Distance == 'shallu'
+#         df7 = df6.loc[df6['Distance'] == "shallu"]
 
-        auth_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/authenticate'
-        distance_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/dfpdapi/roaddistance'
+#         auth_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/authenticate'
+#         distance_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/dfpdapi/roaddistance'
 
-        auth_payload = {
-            "username": "DFPD_C",
-            "password": "W9Vtb8WKkt3"
-        }
+#         auth_payload = {
+#             "username": "DFPD_C",
+#             "password": "W9Vtb8WKkt3"
+#         }
 
-        FILE_PATH = 'distanceIndent.json'
+#         FILE_PATH = 'distanceIndent.json'
 
-        # 10 minutes
+#         # 10 minutes
 
-        def get_token():
-            """Authenticate and return cached Gatishakti token (refreshes after 10 minutes)."""
-            global auth_token, token_timestamp
-            current_time = time.time()
+#         def get_token():
+#             """Authenticate and return cached Gatishakti token (refreshes after 10 minutes)."""
+#             global auth_token, token_timestamp
+#             current_time = time.time()
 
-            # ✅ Reuse existing valid token
-            if auth_token and (current_time - token_timestamp) < TOKEN_VALIDITY_SECONDS:
-                return auth_token
+#             # ✅ Reuse existing valid token
+#             if auth_token and (current_time - token_timestamp) < TOKEN_VALIDITY_SECONDS:
+#                 return auth_token
 
-            # 🔄 Generate a new one if expired or missing
-            try:
-                response = requests.post(auth_url, json=auth_payload, timeout=20)
-                if response.status_code == 200:
-                    token = response.json().get('token')
-                    if token:
-                        auth_token = token
-                        token_timestamp = current_time
-                        print("🔐 Token generated successfully.")
-                        return token
-                    else:
-                        print(" Token missing in response.")
-                else:
-                    print(f"Failed to get token: {response.status_code}")
-            except Exception as e:
-                print(f"Error getting token: {e}")
+#             # 🔄 Generate a new one if expired or missing
+#             try:
+#                 response = requests.post(auth_url, json=auth_payload, timeout=20)
+#                 if response.status_code == 200:
+#                     token = response.json().get('token')
+#                     if token:
+#                         auth_token = token
+#                         token_timestamp = current_time
+#                         print("🔐 Token generated successfully.")
+#                         return token
+#                     else:
+#                         print(" Token missing in response.")
+#                 else:
+#                     print(f"Failed to get token: {response.status_code}")
+#             except Exception as e:
+#                 print(f"Error getting token: {e}")
 
-            return False
+#             return False
 
-        def process_batch(df_batch):
-            """Send multiple rows in one Gatishakti request."""
-            token = get_token()
-            if not token:
-                print("⚠️ No token received — batch skipped.")
-                return None
+#         def process_batch(df_batch):
+#             """Send multiple rows in one Gatishakti request."""
+#             token = get_token()
+#             if not token:
+#                 print("⚠️ No token received — batch skipped.")
+#                 return None
 
-            time.sleep(5)  # avoid rate limit
-            headers = {'Authorization': f'Bearer {token}'}
+#             time.sleep(5)  # avoid rate limit
+#             headers = {'Authorization': f'Bearer {token}'}
 
-            data = {
-                "parameter": [{
-                    "src_lng": row["From_Long"],
-                    "src_lat": row["From_Lat"],
-                    "dest_lng": row["To_Long"],
-                    "dest_lat": row["To_Lat"]
-                } for _, row in df_batch.iterrows()]
-            }
+#             data = {
+#                 "parameter": [{
+#                     "src_lng": row["From_Long"],
+#                     "src_lat": row["From_Lat"],
+#                     "dest_lng": row["To_Long"],
+#                     "dest_lat": row["To_Lat"]
+#                 } for _, row in df_batch.iterrows()]
+#             }
 
-            with open(FILE_PATH, 'w') as f:
-                json.dump(data, f, indent=4)
+#             with open(FILE_PATH, 'w') as f:
+#                 json.dump(data, f, indent=4)
 
-            with open(FILE_PATH, 'rb') as f:
-                files = {'LatsLongsFile': f}
-                try:
-                    response = requests.post(distance_url, headers=headers, files=files, timeout=60)
-                    return response
-                except Exception as e:
-                    print(f" Batch request failed: {e}")
-                    return None
+#             with open(FILE_PATH, 'rb') as f:
+#                 files = {'LatsLongsFile': f}
+#                 try:
+#                     response = requests.post(distance_url, headers=headers, files=files, timeout=60)
+#                     return response
+#                 except Exception as e:
+#                     print(f" Batch request failed: {e}")
+#                     return None
 
-        def process_single(row):
-            """Fetch distance for a single pair using Gatishakti. Returns distance or 0."""
-            token = get_token()
-            if not token:
-                print(f" No token for From_ID={row['From_ID']} → distance set to 0")
-                return 0
+#         def process_single(row):
+#             """Fetch distance for a single pair using Gatishakti. Returns distance or 0."""
+#             token = get_token()
+#             if not token:
+#                 print(f" No token for From_ID={row['From_ID']} → distance set to 0")
+#                 return 0
 
-            time.sleep(2)
-            headers = {'Authorization': f'Bearer {token}'}
+#             time.sleep(2)
+#             headers = {'Authorization': f'Bearer {token}'}
 
-            data = {
-                "parameter": [{
-                    "src_lng": row["From_Long"],
-                    "src_lat": row["From_Lat"],
-                    "dest_lng": row["To_Long"],
-                    "dest_lat": row["To_Lat"]
-                }]
-            }
+#             data = {
+#                 "parameter": [{
+#                     "src_lng": row["From_Long"],
+#                     "src_lat": row["From_Lat"],
+#                     "dest_lng": row["To_Long"],
+#                     "dest_lat": row["To_Lat"]
+#                 }]
+#             }
 
-            with open(FILE_PATH, 'w') as f:
-                json.dump(data, f, indent=4)
+#             with open(FILE_PATH, 'w') as f:
+#                 json.dump(data, f, indent=4)
 
-            with open(FILE_PATH, 'rb') as f:
-                files = {'LatsLongsFile': f}
-                try:
-                    response = requests.post(distance_url, headers=headers, files=files, timeout=30)
-                    if response.status_code == 200:
-                        single_json = response.json()
-                        if (
-                            'data' in single_json and 
-                            len(single_json['data']) > 0 and 
-                            'distance' in single_json['data'][0]
-                        ):
-                            dist = single_json['data'][0]['distance']
-                            print(f" From_ID={row['From_ID']} Distance={dist}")
-                            return dist
-                except Exception as e:
-                    print(f" Error in single request ({row['From_ID']}): {e}")
+#             with open(FILE_PATH, 'rb') as f:
+#                 files = {'LatsLongsFile': f}
+#                 try:
+#                     response = requests.post(distance_url, headers=headers, files=files, timeout=30)
+#                     if response.status_code == 200:
+#                         single_json = response.json()
+#                         if (
+#                             'data' in single_json and 
+#                             len(single_json['data']) > 0 and 
+#                             'distance' in single_json['data'][0]
+#                         ):
+#                             dist = single_json['data'][0]['distance']
+#                             print(f" From_ID={row['From_ID']} Distance={dist}")
+#                             return dist
+#                 except Exception as e:
+#                     print(f" Error in single request ({row['From_ID']}): {e}")
 
-            print(f"⚠️ No distance for From_ID={row['From_ID']} → set 0")
-            return 0
+#             print(f"⚠️ No distance for From_ID={row['From_ID']} → set 0")
+#             return 0
 
-        batch_size = 80
-        total_rows = len(df7)
-        num_batches = (total_rows + batch_size - 1) // batch_size
+#         batch_size = 80
+#         total_rows = len(df7)
+#         num_batches = (total_rows + batch_size - 1) // batch_size
 
-        dist3 = []
+#         dist3 = []
 
-        for batch_num in range(num_batches):
-            start_idx = batch_num * batch_size
-            end_idx = min((batch_num + 1) * batch_size, total_rows)
-            df_batch = df7.iloc[start_idx:end_idx]
+#         for batch_num in range(num_batches):
+#             start_idx = batch_num * batch_size
+#             end_idx = min((batch_num + 1) * batch_size, total_rows)
+#             df_batch = df7.iloc[start_idx:end_idx]
 
-            print(f"\n🚀 Processing batch {batch_num + 1}/{num_batches} (rows {start_idx + 1}-{end_idx})")
+#             print(f"\n🚀 Processing batch {batch_num + 1}/{num_batches} (rows {start_idx + 1}-{end_idx})")
 
-            response = process_batch(df_batch)
+#             response = process_batch(df_batch)
 
-            if response and response.status_code == 200:
-                response_json = response.json()
+#             if response and response.status_code == 200:
+#                 response_json = response.json()
 
-                #  If batch Gatishakti call works fine
-                if 'data' in response_json and all('distance' in row_data for row_data in response_json['data']):
-                    for row_data, (_, row) in zip(response_json['data'], df_batch.iterrows()):
-                        distance = row_data['distance']
-                        dist3.append(distance)
-                        print(f"Batch distance for From_ID={row['From_ID']} → {distance}")
-                else:
-                    # Fallback to single calls if any missing
-                    print("⚠️ Batch incomplete — retrying missing rows one by one...")
-                    for i, (_, row) in enumerate(df_batch.iterrows()):
-                        if (
-                            'data' in response_json and 
-                            i < len(response_json['data']) and 
-                            'distance' in response_json['data'][i]
-                        ):
-                            dist = response_json['data'][i]['distance']
-                            dist3.append(dist)
-                        else:
-                            distance = process_single(row)
-                            dist3.append(distance if distance else 0)
-            else:
-                #  Batch failed completely
-                print("Batch API failed — retrying all rows individually...")
-                for _, row in df_batch.iterrows():
-                    distance = process_single(row)
-                    dist3.append(distance if distance else 0)
+#                 #  If batch Gatishakti call works fine
+#                 if 'data' in response_json and all('distance' in row_data for row_data in response_json['data']):
+#                     for row_data, (_, row) in zip(response_json['data'], df_batch.iterrows()):
+#                         distance = row_data['distance']
+#                         dist3.append(distance)
+#                         print(f"Batch distance for From_ID={row['From_ID']} → {distance}")
+#                 else:
+#                     # Fallback to single calls if any missing
+#                     print("⚠️ Batch incomplete — retrying missing rows one by one...")
+#                     for i, (_, row) in enumerate(df_batch.iterrows()):
+#                         if (
+#                             'data' in response_json and 
+#                             i < len(response_json['data']) and 
+#                             'distance' in response_json['data'][i]
+#                         ):
+#                             dist = response_json['data'][i]['distance']
+#                             dist3.append(dist)
+#                         else:
+#                             distance = process_single(row)
+#                             dist3.append(distance if distance else 0)
+#             else:
+#                 #  Batch failed completely
+#                 print("Batch API failed — retrying all rows individually...")
+#                 for _, row in df_batch.iterrows():
+#                     distance = process_single(row)
+#                     dist3.append(distance if distance else 0)
 
 
-        df7["Distance"] = dist3
+#         df7["Distance"] = dist3
 
-        # Merge with old data
-        df9 = df6.loc[df6['Distance'] != "shallu"]
-        df10 = pd.concat([df9, df7], ignore_index=True)
+#         # Merge with old data
+#         df9 = df6.loc[df6['Distance'] != "shallu"]
+#         df10 = pd.concat([df9, df7], ignore_index=True)
 
-        # Compute total result
-        df10["Distance"] = df10["Distance"].fillna(0)
-        df10["quantity"] = df10["quantity"].fillna(0)
-        result = ((df10['quantity']) * df10['Distance']).sum()
+#         # Compute total result
+#         df10["Distance"] = df10["Distance"].fillna(0)
+#         df10["quantity"] = df10["quantity"].fillna(0)
+#         result = ((df10['quantity']) * df10['Distance']).sum()
 
-        # Save Excel
-        # output_path = 'Backend//Result_Sheet_leg1.xlsx'
-        df10.to_excel('Backend//Result_Sheet2F.xlsx', sheet_name='Warehouse_FPS')
+#         # Save Excel
+#         # output_path = 'Backend//Result_Sheet_leg1.xlsx'
+#         df10.to_excel('Backend//Result_Sheet2F.xlsx', sheet_name='Warehouse_FPS')
         
         
         
-        input = pd.ExcelFile('Backend//Data_1.xlsx')
-        node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
-        node2 = pd.read_excel(input,sheet_name="A.2 FPS")
+#         input = pd.ExcelFile('Backend//Data_1.xlsx')
+#         node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
+#         node2 = pd.read_excel(input,sheet_name="A.2 FPS")
 
-        node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
-        node2 = pd.read_excel(input,sheet_name="A.2 FPS")
-        dist = [[0 for a in range(len(node2["FPS_ID"]))] for b in range(len(node1["WH_ID"]))]
-        phi_1 = []
-        phi_2 = []
-        delta_phi = []
-        delta_lambda = []
-        R = 6371 
+#         node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
+#         node2 = pd.read_excel(input,sheet_name="A.2 FPS")
+#         dist = [[0 for a in range(len(node2["FPS_ID"]))] for b in range(len(node1["WH_ID"]))]
+#         phi_1 = []
+#         phi_2 = []
+#         delta_phi = []
+#         delta_lambda = []
+#         R = 6371 
 
-        for i in node1.index:
-            for j in node2.index:
-                phi_1=math.radians(node1["WH_Lat"][i])
-                phi_2=math.radians(node2["FPS_Lat"][j])
-                delta_phi=math.radians(node2["FPS_Lat"][j]-node1["WH_Lat"][i])
-                delta_lambda=math.radians(node2["FPS_Long"][j]-node1["WH_Long"][i])
-                x=math.sin(delta_phi / 2.0) ** 2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0) ** 2
-                y=2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
-                dist[i][j]=R*y
+#         for i in node1.index:
+#             for j in node2.index:
+#                 phi_1=math.radians(node1["WH_Lat"][i])
+#                 phi_2=math.radians(node2["FPS_Lat"][j])
+#                 delta_phi=math.radians(node2["FPS_Lat"][j]-node1["WH_Lat"][i])
+#                 delta_lambda=math.radians(node2["FPS_Long"][j]-node1["WH_Long"][i])
+#                 x=math.sin(delta_phi / 2.0) ** 2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0) ** 2
+#                 y=2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
+#                 dist[i][j]=R*y
                 
         
-        FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
-        FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
+#         FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
+#         FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
 
-        FCI['WH_District'] = FCI['WH_District'].apply(lambda x: x.replace(' ', ''))
-        FPS['FPS_District'] = FPS['FPS_District'].apply(lambda x: x.replace(' ', ''))
+#         FCI['WH_District'] = FCI['WH_District'].apply(lambda x: x.replace(' ', ''))
+#         FPS['FPS_District'] = FPS['FPS_District'].apply(lambda x: x.replace(' ', ''))
         
 
         
-        model = LpProblem('Supply-Demand-Problem', LpMinimize)
+#         model = LpProblem('Supply-Demand-Problem', LpMinimize)
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
 
-        Variable3 = []
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(FPS['FPS_ID'])):
-                Variable3.append(str(FCI['WH_ID'][i]) + '_'
-                                 + str(FCI['WH_District'][i]) + '_'
-                                 + str(FPS['FPS_ID'][j]) + '_'
-                                 + str(FPS['FPS_District'][j]) + '_Patla')
+#         Variable3 = []
+#         for i in range(len(FCI['WH_ID'])):
+#             for j in range(len(FPS['FPS_ID'])):
+#                 Variable3.append(str(FCI['WH_ID'][i]) + '_'
+#                                  + str(FCI['WH_District'][i]) + '_'
+#                                  + str(FPS['FPS_ID'][j]) + '_'
+#                                  + str(FPS['FPS_District'][j]) + '_Patla')
                                  
          
-        # Variables for Wheat from lEVEL2 TO FPS
+#         # Variables for Wheat from lEVEL2 TO FPS
 
-        DV_Variables3 = LpVariable.matrix('X', Variable3, cat='float',
-                lowBound=0)
-        Allocation3 = np.array(DV_Variables3).reshape(len(FCI['WH_ID']),
-                len(FPS['FPS_ID']))
+#         DV_Variables3 = LpVariable.matrix('X', Variable3, cat='float',
+#                 lowBound=0)
+#         Allocation3 = np.array(DV_Variables3).reshape(len(FCI['WH_ID']),
+#                 len(FPS['FPS_ID']))
                 
                 
         
         
-        allCombination3 = []
+#         allCombination3 = []
         
         
 
-        for i in range(len(dist)):
-            for j in range(len(FPS['FPS_ID'])):
-                allCombination3.append(Allocation3[i][j] * dist[i][j])
+#         for i in range(len(dist)):
+#             for j in range(len(FPS['FPS_ID'])):
+#                 allCombination3.append(Allocation3[i][j] * dist[i][j])
                 
                        
         
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
 
-        model += lpSum(allCombination3)
+#         model += lpSum(allCombination3)
 
-        # Demand Constraints for Wheat
+#         # Demand Constraints for Wheat
         
         
 
-        for i in range(len(FPS['FPS_ID'])):
-            model += lpSum(Allocation3[j][i] for j in range(len(FCI['WH_ID'
-                           ]))) <= FPS['Storage_Patla'][i]
+#         for i in range(len(FPS['FPS_ID'])):
+#             model += lpSum(Allocation3[j][i] for j in range(len(FCI['WH_ID'
+#                            ]))) <= FPS['Storage_Patla'][i]
                            
-        for i in range(len(FPS['FPS_ID'])):
-            model += lpSum(Allocation3[j][i] for j in range(len(FCI['WH_ID'
-                           ]))) >= FPS['Min_Patla'][i]                   
+#         for i in range(len(FPS['FPS_ID'])):
+#             model += lpSum(Allocation3[j][i] for j in range(len(FCI['WH_ID'
+#                            ]))) >= FPS['Min_Patla'][i]                   
                          
 
-        for i in range(len(FCI['WH_ID'])):
-            model += (lpSum(Allocation3[i][j] for j in range(len(FPS['FPS_ID'
-                           ])))  <= FCI['Procurement_Patla'][i])
-            model += (lpSum(Allocation3[i][j] for j in range(len(FPS['FPS_ID'
-                           ])))  >= FCI['Procurement_Patla'][i]) 
+#         for i in range(len(FCI['WH_ID'])):
+#             model += (lpSum(Allocation3[i][j] for j in range(len(FPS['FPS_ID'
+#                            ])))  <= FCI['Procurement_Patla'][i])
+#             model += (lpSum(Allocation3[i][j] for j in range(len(FPS['FPS_ID'
+#                            ])))  >= FCI['Procurement_Patla'][i]) 
         
         
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(FPS['FPS_ID'])):
-                if FCI['WH_District'][i] != FPS['FPS_District'][j]:
-                    model += Allocation3[i][j] == 0   
+#         for i in range(len(FCI['WH_ID'])):
+#             for j in range(len(FPS['FPS_ID'])):
+#                 if FCI['WH_District'][i] != FPS['FPS_District'][j]:
+#                     model += Allocation3[i][j] == 0   
                     
-        model.solve(CPLEX_CMD(options=[
-            "set mip tolerances mipgap 0.01",
-            "set emphasis memory y",
-            "set mip strategy file 3",
-            "set workmem 2048"
-        ]))
+#         model.solve(CPLEX_CMD(options=[
+#             "set mip tolerances mipgap 0.01",
+#             "set emphasis memory y",
+#             "set mip strategy file 3",
+#             "set workmem 2048"
+#         ]))
         
         
-        status = LpStatus[model.status]
+#         status = LpStatus[model.status]
 
-        if status != "Optimal":
-            print("Optimization failed:", status)
+#         if status != "Optimal":
+#             print("Optimization failed:", status)
 
-            data = {
-                "status": 0,
-                "message": "Infeasible or Unbounded Solution"
-            }
+#             data = {
+#                 "status": 0,
+#                 "message": "Infeasible or Unbounded Solution"
+#             }
 
-            return json.dumps(data, indent=1)
+#             return json.dumps(data, indent=1)
  
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
 
         
 
-        Output_File = open('Backend//Inter_District1_leg4.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
+#         Output_File = open('Backend//Inter_District1_leg4.csv', 'w')
+#         for v in model.variables():
+#             if v.value() > 0:
+#                 Output_File.write(v.name + '\t' + str(v.value()) + '\n')
 
-        Output_File = open('Backend//Inter_District1_leg4.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
+#         Output_File = open('Backend//Inter_District1_leg4.csv', 'w')
+#         for v in model.variables():
+#             if v.value() > 0:
+#                 Output_File.write(v.name + '\t' + str(v.value()) + '\n')
 
-        df9 = pd.read_csv('Backend//Inter_District1_leg4.csv',header=None)
+#         df9 = pd.read_csv('Backend//Inter_District1_leg4.csv',header=None)
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)        
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)        
 
-        df9.columns = ['Tagging']
-        df9[[
-            'Var',
-            'WH_ID',
-            'WH_D',
-            'FPS_ID',
-            'FPS_D',
-            'commodity_Value',
-            ]] = df9[df9.columns[0]].str.split('_', n=6, expand=True)
-        del df9[df9.columns[0]]
-        df9[['commodity', 'Values']] = df9['commodity_Value'
-                ].str.split('\\t', n=1, expand=True)
-        del df9['commodity_Value']
-        df9 = df9.drop(np.where(df9['commodity'] == 'Wheat1')[0])
+#         df9.columns = ['Tagging']
+#         df9[[
+#             'Var',
+#             'WH_ID',
+#             'WH_D',
+#             'FPS_ID',
+#             'FPS_D',
+#             'commodity_Value',
+#             ]] = df9[df9.columns[0]].str.split('_', n=6, expand=True)
+#         del df9[df9.columns[0]]
+#         df9[['commodity', 'Values']] = df9['commodity_Value'
+#                 ].str.split('\\t', n=1, expand=True)
+#         del df9['commodity_Value']
+#         df9 = df9.drop(np.where(df9['commodity'] == 'Wheat1')[0])
         
         
-        def convert_to_numeric(value):
-            try:
-                return pd.to_numeric(value)
-            except ValueError:
-                return value
+#         def convert_to_numeric(value):
+#             try:
+#                 return pd.to_numeric(value)
+#             except ValueError:
+#                 return value
                 
-        df9.to_excel('Backend//Tagging_Sheet_Pre_leg4.xlsx', sheet_name='BG_FPS')            
+#         df9.to_excel('Backend//Tagging_Sheet_Pre_leg4.xlsx', sheet_name='BG_FPS')            
 
 
 
 
         
 
-        df1 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg4.xlsx', sheet_name='BG_FPS')
+#         df1 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg4.xlsx', sheet_name='BG_FPS')
        
 
-        # Combine all rows
-        combined_df = pd.concat([df1], ignore_index=True)
+#         # Combine all rows
+#         combined_df = pd.concat([df1], ignore_index=True)
         
-        def convert_to_numeric(value):
-            try:
-                return pd.to_numeric(value)
-            except ValueError:
-                return value
+#         def convert_to_numeric(value):
+#             try:
+#                 return pd.to_numeric(value)
+#             except ValueError:
+#                 return value
         
         
-        combined_df['WH_ID'] = combined_df['WH_ID'].apply(convert_to_numeric)
-        combined_df['FPS_ID'] = combined_df['FPS_ID'].apply(convert_to_numeric)
+#         combined_df['WH_ID'] = combined_df['WH_ID'].apply(convert_to_numeric)
+#         combined_df['FPS_ID'] = combined_df['FPS_ID'].apply(convert_to_numeric)
 
-        # Write to a new Excel file with one sheet
-        combined_df.to_excel(
-            'Backend//Tagging_Sheet_Pre_leg4.xlsx',
-            sheet_name='BG_FPS',
-            index=False
-        )
+#         # Write to a new Excel file with one sheet
+#         combined_df.to_excel(
+#             'Backend//Tagging_Sheet_Pre_leg4.xlsx',
+#             sheet_name='BG_FPS',
+#             index=False
+#         )
 
-        # Read back the combined file
-        df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg4.xlsx', sheet_name='BG_FPS')
+#         # Read back the combined file
+#         df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg4.xlsx', sheet_name='BG_FPS')
          
-        USN = pd.ExcelFile('Backend//Data_1.xlsx')
-        FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
-        FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
+#         USN = pd.ExcelFile('Backend//Data_1.xlsx')
+#         FCI = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
+#         FPS = pd.read_excel(USN, sheet_name='A.2 FPS', index_col=None)
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
+#         if stop_process==True:
+#             data = {}
+#             data['status'] = 0
+#             data['message'] = "Process Stopped"
+#             json_data = json.dumps(data)
+#             json_object = json.loads(json_data)
+#             return json.dumps(json_object, indent=1)
         
-        df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
-        #df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
-        df4 = df4[[
-            'WH_ID',
-            'WH_Name',
-            'WH_District',
-            'WH_Lat',
-            'WH_Long',
-            'FPS_ID',
-            'commodity',
-            'Values',
-            ]]
-        df4 = pd.merge(df4, FPS, on='FPS_ID', how='inner')
-        df51 = df4[[
-            'WH_ID',
-            'WH_Name',
-            'WH_District', 
-            'WH_Lat',
-            'WH_Long',
-            'FPS_ID',
-            'FPS_Name',
-            'FPS_District',
-            'FPS_Lat',
-            'FPS_Long',
-            'commodity',
-            'Values',
-            ]]
-        df51.insert(0, 'Scenario', 'Optimized')
-        df51.insert(1, 'From', 'PC')
-        df51.insert(2, 'From_State', 'Chattisgarh')
-        df51.insert(7, 'To', 'Mill')
-        df51.insert(8, 'To_State', 'Chattisgarh')
+#         df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
+#         #df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
+#         df4 = df4[[
+#             'WH_ID',
+#             'WH_Name',
+#             'WH_District',
+#             'WH_Lat',
+#             'WH_Long',
+#             'FPS_ID',
+#             'commodity',
+#             'Values',
+#             ]]
+#         df4 = pd.merge(df4, FPS, on='FPS_ID', how='inner')
+#         df51 = df4[[
+#             'WH_ID',
+#             'WH_Name',
+#             'WH_District', 
+#             'WH_Lat',
+#             'WH_Long',
+#             'FPS_ID',
+#             'FPS_Name',
+#             'FPS_District',
+#             'FPS_Lat',
+#             'FPS_Long',
+#             'commodity',
+#             'Values',
+#             ]]
+#         df51.insert(0, 'Scenario', 'Optimized')
+#         df51.insert(1, 'From', 'PC')
+#         df51.insert(2, 'From_State', 'Chattisgarh')
+#         df51.insert(7, 'To', 'Mill')
+#         df51.insert(8, 'To_State', 'Chattisgarh')
         
-        df51.rename(columns={
-            'WH_ID': 'From_ID',
-            'WH_Name': 'From_Name',
-            'WH_Lat': 'From_Lat',
-            'WH_Long': 'From_Long',
+#         df51.rename(columns={
+#             'WH_ID': 'From_ID',
+#             'WH_Name': 'From_Name',
+#             'WH_Lat': 'From_Lat',
+#             'WH_Long': 'From_Long',
            
-            }, inplace=True)
-        df51.rename(columns={
-            'FPS_ID': 'To_ID',
-            'FPS_Name': 'To_Name',
-            'FPS_Lat': 'To_Lat',
-            'FPS_Long': 'To_Long',
+#             }, inplace=True)
+#         df51.rename(columns={
+#             'FPS_ID': 'To_ID',
+#             'FPS_Name': 'To_Name',
+#             'FPS_Lat': 'To_Lat',
+#             'FPS_Long': 'To_Long',
             
-            'Values':'quantity',
-            }, inplace=True)
-        df51.rename(columns={'WH_District': 'From_District',
-                   'FPS_District': 'To_District'}, inplace=True)
-        df51 = df51.loc[:, [
-            'Scenario',
-            'From',
-            'From_State',
-            'From_District',
-            'From_ID',
-            'From_Name',
-            'From_Lat',
-            'From_Long',
-            'To',
-            'To_ID',
-            'To_Name',
-            'To_State',
-            'To_District',
-            'To_Lat',
-            'To_Long',
-            'commodity',
-            'quantity',
-            ]]
-        def convert_to_numeric(value):
-            try:
-                return pd.to_numeric(value)
-            except ValueError:
-                return value
+#             'Values':'quantity',
+#             }, inplace=True)
+#         df51.rename(columns={'WH_District': 'From_District',
+#                    'FPS_District': 'To_District'}, inplace=True)
+#         df51 = df51.loc[:, [
+#             'Scenario',
+#             'From',
+#             'From_State',
+#             'From_District',
+#             'From_ID',
+#             'From_Name',
+#             'From_Lat',
+#             'From_Long',
+#             'To',
+#             'To_ID',
+#             'To_Name',
+#             'To_State',
+#             'To_District',
+#             'To_Lat',
+#             'To_Long',
+#             'commodity',
+#             'quantity',
+#             ]]
+#         def convert_to_numeric(value):
+#             try:
+#                 return pd.to_numeric(value)
+#             except ValueError:
+#                 return value
                 
         
-        df51['From_ID'] = df51['From_ID'].apply(convert_to_numeric)
-        df51['To_ID'] = df51['To_ID'].apply(convert_to_numeric)   
+#         df51['From_ID'] = df51['From_ID'].apply(convert_to_numeric)
+#         df51['To_ID'] = df51['To_ID'].apply(convert_to_numeric)   
         
-        df51.to_excel('Backend//Tagging_Sheet_Pre13.xlsx', sheet_name='BG_FPS1')
-        data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre13.xlsx")
-        df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
-        data1.close()
+#         df51.to_excel('Backend//Tagging_Sheet_Pre13.xlsx', sheet_name='BG_FPS1')
+#         data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre13.xlsx")
+#         df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
+#         data1.close()
         
         
         
@@ -2797,282 +2875,282 @@ def processFile():
         
         
         
-        input = pd.ExcelFile('Backend/Data_1.xlsx')
-        node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
-        node1["concatenate"]= node1['WH_Lat'].round(3).astype(str) + ',' + node1['WH_Long'].round(3).astype(str)
+#         input = pd.ExcelFile('Backend/Data_1.xlsx')
+#         node1 = pd.read_excel(input,sheet_name="A.1 Warehouse")
+#         node1["concatenate"]= node1['WH_Lat'].round(3).astype(str) + ',' + node1['WH_Long'].round(3).astype(str)
         
-        node2 = pd.read_excel(input,sheet_name="A.2 FPS")
-        node2["concatenate1"]= node2['FPS_Lat'].round(3).astype(str) + ',' + node2['FPS_Long'].round(3).astype(str)
+#         node2 = pd.read_excel(input,sheet_name="A.2 FPS")
+#         node2["concatenate1"]= node2['FPS_Lat'].round(3).astype(str) + ',' + node2['FPS_Long'].round(3).astype(str)
         
-        DistanceBing = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='BG_BG')
-        Warehouse = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='Warehouse')
-        FPS = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='FPS')
+#         DistanceBing = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='BG_BG')
+#         Warehouse = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='Warehouse')
+#         FPS = read_protected_excel('Backend//Distance_Initial_L2.xlsx', 'distf', sheet_name='FPS')
        
         
-        Warehouse['Lat_Long_r'] = (
-            Warehouse['Lat_Long']
-            .str.split(',', expand=True)
-            .apply(pd.to_numeric, errors='coerce')
-            .round(3)
-            .astype(str)
-            .agg(','.join, axis=1)
-        )
+#         Warehouse['Lat_Long_r'] = (
+#             Warehouse['Lat_Long']
+#             .str.split(',', expand=True)
+#             .apply(pd.to_numeric, errors='coerce')
+#             .round(3)
+#             .astype(str)
+#             .agg(','.join, axis=1)
+#         )
         
-        FPS['Lat_Long_r'] = (
-            FPS['Lat_Long']
-            .str.split(',', expand=True)
-            .apply(pd.to_numeric, errors='coerce')
-            .round(3)
-            .astype(str)
-            .agg(','.join, axis=1)
-        )
+#         FPS['Lat_Long_r'] = (
+#             FPS['Lat_Long']
+#             .str.split(',', expand=True)
+#             .apply(pd.to_numeric, errors='coerce')
+#             .round(3)
+#             .astype(str)
+#             .agg(','.join, axis=1)
+#         )
 
         
-        node1 = node1[['WH_ID', 'WH_Lat', 'WH_Long','concatenate']]
-        War = pd.merge(node1, Warehouse, on='WH_ID')
-        df1_w = War[War['concatenate'] != War['Lat_Long_r']]
-        Warehouse_ID = df1_w['WH_ID'].unique()
+#         node1 = node1[['WH_ID', 'WH_Lat', 'WH_Long','concatenate']]
+#         War = pd.merge(node1, Warehouse, on='WH_ID')
+#         df1_w = War[War['concatenate'] != War['Lat_Long_r']]
+#         Warehouse_ID = df1_w['WH_ID'].unique()
         
         
         
-        node2 = node2[['FPS_ID', 'FPS_Lat', 'FPS_Long','concatenate1']]
-        FPS1 = pd.merge(node2, FPS, on='FPS_ID')
-        df1_f = FPS1[FPS1['concatenate1'] != FPS1['Lat_Long_r']]
-        FPS_ID = df1_f['FPS_ID'].unique()
+#         node2 = node2[['FPS_ID', 'FPS_Lat', 'FPS_Long','concatenate1']]
+#         FPS1 = pd.merge(node2, FPS, on='FPS_ID')
+#         df1_f = FPS1[FPS1['concatenate1'] != FPS1['Lat_Long_r']]
+#         FPS_ID = df1_f['FPS_ID'].unique()
 
 
-        BG_BG = DistanceBing
-        Distance1 = BG_BG.drop(columns=BG_BG.columns[BG_BG.columns.isin(Warehouse_ID)])
-        Distance2 =Distance1.T
-        Distance3 = Distance2.drop(columns=Distance2.columns[Distance2.columns.isin(FPS_ID)])
-        Distance3 = Distance3.T
-        with pd.ExcelWriter('Backend//Chattisgarh_Distance_L2.xlsx') as writer:
-            Distance3.to_excel(writer, sheet_name='BG_BG',index=False)
+#         BG_BG = DistanceBing
+#         Distance1 = BG_BG.drop(columns=BG_BG.columns[BG_BG.columns.isin(Warehouse_ID)])
+#         Distance2 =Distance1.T
+#         Distance3 = Distance2.drop(columns=Distance2.columns[Distance2.columns.isin(FPS_ID)])
+#         Distance3 = Distance3.T
+#         with pd.ExcelWriter('Backend//Chattisgarh_Distance_L2.xlsx') as writer:
+#             Distance3.to_excel(writer, sheet_name='BG_BG',index=False)
             
 
-        Cost = pd.ExcelFile("Backend//Chattisgarh_Distance_L2.xlsx")
-        BG_BG = pd.read_excel(Cost,sheet_name="BG_BG")
-        Cost.close()
-        data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre13.xlsx")
-        df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
-        data1.close()
+#         Cost = pd.ExcelFile("Backend//Chattisgarh_Distance_L2.xlsx")
+#         BG_BG = pd.read_excel(Cost,sheet_name="BG_BG")
+#         Cost.close()
+#         data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre13.xlsx")
+#         df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
+#         data1.close()
 
-        Distance_BG_BG = {}
-        column_list_BG_BG = list(BG_BG.columns.astype(str))
-        row_list_BG_BG = list(BG_BG.iloc[:, 0].astype(str))
+#         Distance_BG_BG = {}
+#         column_list_BG_BG = list(BG_BG.columns.astype(str))
+#         row_list_BG_BG = list(BG_BG.iloc[:, 0].astype(str))
 
-        for ind in df5.index:
-            from_code = df5['From_ID'][ind]
-            to_code = df5['To_ID'][ind]
-            from_code_str = str(from_code)
-            to_code_str = str(to_code)
+#         for ind in df5.index:
+#             from_code = df5['From_ID'][ind]
+#             to_code = df5['To_ID'][ind]
+#             from_code_str = str(from_code)
+#             to_code_str = str(to_code)
             
-            if to_code_str in row_list_BG_BG and from_code_str in column_list_BG_BG:
-                index_i = row_list_BG_BG.index(to_code_str)
-                index_j = column_list_BG_BG.index(from_code_str)
-                key = to_code_str + "_" + from_code_str
-                Distance_BG_BG[key] = BG_BG.iloc[index_i, index_j] 
+#             if to_code_str in row_list_BG_BG and from_code_str in column_list_BG_BG:
+#                 index_i = row_list_BG_BG.index(to_code_str)
+#                 index_j = column_list_BG_BG.index(from_code_str)
+#                 key = to_code_str + "_" + from_code_str
+#                 Distance_BG_BG[key] = BG_BG.iloc[index_i, index_j] 
                 
                 
-        df5["Tagging"] = df5['To_ID'].astype(str) + '_' + df5['From_ID'].astype(str)
-        df5['Distance'] = df5['Tagging'].map(Distance_BG_BG)
-        df5.fillna('shallu', inplace=True)
-        df5.to_excel('Backend//Result_Sheet14.xlsx', sheet_name='Warehouse_FPS', index=False)        
+#         df5["Tagging"] = df5['To_ID'].astype(str) + '_' + df5['From_ID'].astype(str)
+#         df5['Distance'] = df5['Tagging'].map(Distance_BG_BG)
+#         df5.fillna('shallu', inplace=True)
+#         df5.to_excel('Backend//Result_Sheet14.xlsx', sheet_name='Warehouse_FPS', index=False)        
         
         
         
         
         
-# ----------------------------------------------------------------------------------------------------------------------------------------------
-        Result_Sheet1 = pd.ExcelFile("Backend//Result_Sheet14.xlsx")
-        df6 = pd.read_excel(Result_Sheet1, sheet_name="Warehouse_FPS")
+# # ----------------------------------------------------------------------------------------------------------------------------------------------
+#         Result_Sheet1 = pd.ExcelFile("Backend//Result_Sheet14.xlsx")
+#         df6 = pd.read_excel(Result_Sheet1, sheet_name="Warehouse_FPS")
 
-        # Filter rows where Distance == 'shallu'
-        df7 = df6.loc[df6['Distance'] == "shallu"]
+#         # Filter rows where Distance == 'shallu'
+#         df7 = df6.loc[df6['Distance'] == "shallu"]
 
-        auth_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/authenticate'
-        distance_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/dfpdapi/roaddistance'
+#         auth_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/authenticate'
+#         distance_url = 'https://kerala.pmgatishakti.gov.in/PMGatishaktiApiService/dfpdapi/roaddistance'
 
-        auth_payload = {
-            "username": "DFPD_C",
-            "password": "W9Vtb8WKkt3"
-        }
+#         auth_payload = {
+#             "username": "DFPD_C",
+#             "password": "W9Vtb8WKkt3"
+#         }
 
-        FILE_PATH = 'distanceIndent.json'
+#         FILE_PATH = 'distanceIndent.json'
 
-        # 10 minutes
+#         # 10 minutes
 
-        def get_token():
-            """Authenticate and return cached Gatishakti token (refreshes after 10 minutes)."""
-            global auth_token, token_timestamp
-            current_time = time.time()
+#         def get_token():
+#             """Authenticate and return cached Gatishakti token (refreshes after 10 minutes)."""
+#             global auth_token, token_timestamp
+#             current_time = time.time()
 
-            # ✅ Reuse existing valid token
-            if auth_token and (current_time - token_timestamp) < TOKEN_VALIDITY_SECONDS:
-                return auth_token
+#             # ✅ Reuse existing valid token
+#             if auth_token and (current_time - token_timestamp) < TOKEN_VALIDITY_SECONDS:
+#                 return auth_token
 
-            # 🔄 Generate a new one if expired or missing
-            try:
-                response = requests.post(auth_url, json=auth_payload, timeout=20)
-                if response.status_code == 200:
-                    token = response.json().get('token')
-                    if token:
-                        auth_token = token
-                        token_timestamp = current_time
-                        print("🔐 Token generated successfully.")
-                        return token
-                    else:
-                        print(" Token missing in response.")
-                else:
-                    print(f"Failed to get token: {response.status_code}")
-            except Exception as e:
-                print(f"Error getting token: {e}")
+#             # 🔄 Generate a new one if expired or missing
+#             try:
+#                 response = requests.post(auth_url, json=auth_payload, timeout=20)
+#                 if response.status_code == 200:
+#                     token = response.json().get('token')
+#                     if token:
+#                         auth_token = token
+#                         token_timestamp = current_time
+#                         print("🔐 Token generated successfully.")
+#                         return token
+#                     else:
+#                         print(" Token missing in response.")
+#                 else:
+#                     print(f"Failed to get token: {response.status_code}")
+#             except Exception as e:
+#                 print(f"Error getting token: {e}")
 
-            return False
+#             return False
 
-        def process_batch(df_batch):
-            """Send multiple rows in one Gatishakti request."""
-            token = get_token()
-            if not token:
-                print("⚠️ No token received — batch skipped.")
-                return None
+#         def process_batch(df_batch):
+#             """Send multiple rows in one Gatishakti request."""
+#             token = get_token()
+#             if not token:
+#                 print("⚠️ No token received — batch skipped.")
+#                 return None
 
-            time.sleep(5)  # avoid rate limit
-            headers = {'Authorization': f'Bearer {token}'}
+#             time.sleep(5)  # avoid rate limit
+#             headers = {'Authorization': f'Bearer {token}'}
 
-            data = {
-                "parameter": [{
-                    "src_lng": row["From_Long"],
-                    "src_lat": row["From_Lat"],
-                    "dest_lng": row["To_Long"],
-                    "dest_lat": row["To_Lat"]
-                } for _, row in df_batch.iterrows()]
-            }
+#             data = {
+#                 "parameter": [{
+#                     "src_lng": row["From_Long"],
+#                     "src_lat": row["From_Lat"],
+#                     "dest_lng": row["To_Long"],
+#                     "dest_lat": row["To_Lat"]
+#                 } for _, row in df_batch.iterrows()]
+#             }
 
-            with open(FILE_PATH, 'w') as f:
-                json.dump(data, f, indent=4)
+#             with open(FILE_PATH, 'w') as f:
+#                 json.dump(data, f, indent=4)
 
-            with open(FILE_PATH, 'rb') as f:
-                files = {'LatsLongsFile': f}
-                try:
-                    response = requests.post(distance_url, headers=headers, files=files, timeout=60)
-                    return response
-                except Exception as e:
-                    print(f" Batch request failed: {e}")
-                    return None
+#             with open(FILE_PATH, 'rb') as f:
+#                 files = {'LatsLongsFile': f}
+#                 try:
+#                     response = requests.post(distance_url, headers=headers, files=files, timeout=60)
+#                     return response
+#                 except Exception as e:
+#                     print(f" Batch request failed: {e}")
+#                     return None
 
-        def process_single(row):
-            """Fetch distance for a single pair using Gatishakti. Returns distance or 0."""
-            token = get_token()
-            if not token:
-                print(f" No token for From_ID={row['From_ID']} → distance set to 0")
-                return 0
+#         def process_single(row):
+#             """Fetch distance for a single pair using Gatishakti. Returns distance or 0."""
+#             token = get_token()
+#             if not token:
+#                 print(f" No token for From_ID={row['From_ID']} → distance set to 0")
+#                 return 0
 
-            time.sleep(2)
-            headers = {'Authorization': f'Bearer {token}'}
+#             time.sleep(2)
+#             headers = {'Authorization': f'Bearer {token}'}
 
-            data = {
-                "parameter": [{
-                    "src_lng": row["From_Long"],
-                    "src_lat": row["From_Lat"],
-                    "dest_lng": row["To_Long"],
-                    "dest_lat": row["To_Lat"]
-                }]
-            }
+#             data = {
+#                 "parameter": [{
+#                     "src_lng": row["From_Long"],
+#                     "src_lat": row["From_Lat"],
+#                     "dest_lng": row["To_Long"],
+#                     "dest_lat": row["To_Lat"]
+#                 }]
+#             }
 
-            with open(FILE_PATH, 'w') as f:
-                json.dump(data, f, indent=4)
+#             with open(FILE_PATH, 'w') as f:
+#                 json.dump(data, f, indent=4)
 
-            with open(FILE_PATH, 'rb') as f:
-                files = {'LatsLongsFile': f}
-                try:
-                    response = requests.post(distance_url, headers=headers, files=files, timeout=30)
-                    if response.status_code == 200:
-                        single_json = response.json()
-                        if (
-                            'data' in single_json and 
-                            len(single_json['data']) > 0 and 
-                            'distance' in single_json['data'][0]
-                        ):
-                            dist = single_json['data'][0]['distance']
-                            print(f" From_ID={row['From_ID']} Distance={dist}")
-                            return dist
-                except Exception as e:
-                    print(f" Error in single request ({row['From_ID']}): {e}")
+#             with open(FILE_PATH, 'rb') as f:
+#                 files = {'LatsLongsFile': f}
+#                 try:
+#                     response = requests.post(distance_url, headers=headers, files=files, timeout=30)
+#                     if response.status_code == 200:
+#                         single_json = response.json()
+#                         if (
+#                             'data' in single_json and 
+#                             len(single_json['data']) > 0 and 
+#                             'distance' in single_json['data'][0]
+#                         ):
+#                             dist = single_json['data'][0]['distance']
+#                             print(f" From_ID={row['From_ID']} Distance={dist}")
+#                             return dist
+#                 except Exception as e:
+#                     print(f" Error in single request ({row['From_ID']}): {e}")
 
-            print(f"⚠️ No distance for From_ID={row['From_ID']} → set 0")
-            return 0
+#             print(f"⚠️ No distance for From_ID={row['From_ID']} → set 0")
+#             return 0
 
-        batch_size = 80
-        total_rows = len(df7)
-        num_batches = (total_rows + batch_size - 1) // batch_size
+#         batch_size = 80
+#         total_rows = len(df7)
+#         num_batches = (total_rows + batch_size - 1) // batch_size
 
-        dist3 = []
+#         dist3 = []
 
-        for batch_num in range(num_batches):
-            start_idx = batch_num * batch_size
-            end_idx = min((batch_num + 1) * batch_size, total_rows)
-            df_batch = df7.iloc[start_idx:end_idx]
+#         for batch_num in range(num_batches):
+#             start_idx = batch_num * batch_size
+#             end_idx = min((batch_num + 1) * batch_size, total_rows)
+#             df_batch = df7.iloc[start_idx:end_idx]
 
-            print(f"\n🚀 Processing batch {batch_num + 1}/{num_batches} (rows {start_idx + 1}-{end_idx})")
+#             print(f"\n🚀 Processing batch {batch_num + 1}/{num_batches} (rows {start_idx + 1}-{end_idx})")
 
-            response = process_batch(df_batch)
+#             response = process_batch(df_batch)
 
-            if response and response.status_code == 200:
-                response_json = response.json()
+#             if response and response.status_code == 200:
+#                 response_json = response.json()
 
-                #  If batch Gatishakti call works fine
-                if 'data' in response_json and all('distance' in row_data for row_data in response_json['data']):
-                    for row_data, (_, row) in zip(response_json['data'], df_batch.iterrows()):
-                        distance = row_data['distance']
-                        dist3.append(distance)
-                        print(f"Batch distance for From_ID={row['From_ID']} → {distance}")
-                else:
-                    # Fallback to single calls if any missing
-                    print("⚠️ Batch incomplete — retrying missing rows one by one...")
-                    for i, (_, row) in enumerate(df_batch.iterrows()):
-                        if (
-                            'data' in response_json and 
-                            i < len(response_json['data']) and 
-                            'distance' in response_json['data'][i]
-                        ):
-                            dist = response_json['data'][i]['distance']
-                            dist3.append(dist)
-                        else:
-                            distance = process_single(row)
-                            dist3.append(distance if distance else 0)
-            else:
-                #  Batch failed completely
-                print("Batch API failed — retrying all rows individually...")
-                for _, row in df_batch.iterrows():
-                    distance = process_single(row)
-                    dist3.append(distance if distance else 0)
+#                 #  If batch Gatishakti call works fine
+#                 if 'data' in response_json and all('distance' in row_data for row_data in response_json['data']):
+#                     for row_data, (_, row) in zip(response_json['data'], df_batch.iterrows()):
+#                         distance = row_data['distance']
+#                         dist3.append(distance)
+#                         print(f"Batch distance for From_ID={row['From_ID']} → {distance}")
+#                 else:
+#                     # Fallback to single calls if any missing
+#                     print("⚠️ Batch incomplete — retrying missing rows one by one...")
+#                     for i, (_, row) in enumerate(df_batch.iterrows()):
+#                         if (
+#                             'data' in response_json and 
+#                             i < len(response_json['data']) and 
+#                             'distance' in response_json['data'][i]
+#                         ):
+#                             dist = response_json['data'][i]['distance']
+#                             dist3.append(dist)
+#                         else:
+#                             distance = process_single(row)
+#                             dist3.append(distance if distance else 0)
+#             else:
+#                 #  Batch failed completely
+#                 print("Batch API failed — retrying all rows individually...")
+#                 for _, row in df_batch.iterrows():
+#                     distance = process_single(row)
+#                     dist3.append(distance if distance else 0)
 
 
-        df7["Distance"] = dist3
+#         df7["Distance"] = dist3
 
-        # Merge with old data
-        df9 = df6.loc[df6['Distance'] != "shallu"]
-        df10 = pd.concat([df9, df7], ignore_index=True)
+#         # Merge with old data
+#         df9 = df6.loc[df6['Distance'] != "shallu"]
+#         df10 = pd.concat([df9, df7], ignore_index=True)
 
-        # Compute total result
-        df10["Distance"] = df10["Distance"].fillna(0)
-        df10["quantity"] = df10["quantity"].fillna(0)
-        result = ((df10['quantity']) * df10['Distance']).sum()
+#         # Compute total result
+#         df10["Distance"] = df10["Distance"].fillna(0)
+#         df10["quantity"] = df10["quantity"].fillna(0)
+#         result = ((df10['quantity']) * df10['Distance']).sum()
 
-        # Save Excel
-        # output_path = 'Backend//Result_Sheet_leg1.xlsx'
-        df10.to_excel('Backend//Result_Sheet3F.xlsx', sheet_name='Warehouse_FPS')
+#         # Save Excel
+#         # output_path = 'Backend//Result_Sheet_leg1.xlsx'
+#         df10.to_excel('Backend//Result_Sheet3F.xlsx', sheet_name='Warehouse_FPS')
         
-        df1 = pd.read_excel('Backend//Result_Sheet1F.xlsx', sheet_name='Warehouse_FPS')
-        df2 = pd.read_excel('Backend//Result_Sheet2F.xlsx', sheet_name='Warehouse_FPS')
-        df3 = pd.read_excel('Backend//Result_Sheet3F.xlsx', sheet_name='Warehouse_FPS')
+        df1 = pd.read_excel('Backend//Result_Sheet1.xlsx', sheet_name='Warehouse_FPS')
+#         df2 = pd.read_excel('Backend//Result_Sheet2F.xlsx', sheet_name='Warehouse_FPS')
+        # df3 = pd.read_excel('Backend//Result_Sheet3F.xlsx', sheet_name='Warehouse_FPS')
 
         # Combine them
-        df = pd.concat([df1, df2, df3], ignore_index=True)
+        # df = pd.concat([df1, df2, df3], ignore_index=True)
 
         # Save into one Excel file
-        df.to_excel('Backend//Result_Sheet.xlsx', sheet_name='Warehouse_FPS', index=False)
+        df1.to_excel('Backend//Result_Sheet.xlsx', sheet_name='Warehouse_FPS', index=False)
                 
 # ----------------------------------------------------------------------------------------------------------------------------------------------
         data = {}
@@ -5064,30 +5142,15 @@ def processFile_leg1():
                 
         # Distance matrix for node3 → node2
 
-        dist1 = [[0 for a in range(len(node2["SW_ID"]))] for b in range(len(node3["WH_ID"]))]
-        phi_1 = []
-        phi_2 = []
-        delta_phi = []
-        delta_lambda = []
-        R = 6371 
-        for i in node3.index:
-            for j in node2.index:
-                phi_1=math.radians(node3["WH_Lat"][i])
-                phi_2=math.radians(node2["SW_Lat"][j])
-                delta_phi=math.radians(node2["SW_Lat"][j]-node3["WH_Lat"][i])
-                delta_lambda=math.radians(node2["SW_Long"][j]-node3["WH_Long"][i])
-                x=math.sin(delta_phi / 2.0) ** 2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0) ** 2
-                y=2 * math.atan2(math.sqrt(x), math.sqrt(1 - x))
-                dist1[i][j]=R*y
-
+        
         
         FCI = pd.read_excel(USN, sheet_name='A.2 FCI', index_col=None)
         WH = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
-        Mill = pd.read_excel(USN, sheet_name='A.2 Mill', index_col=None)
+       
 
         FCI['WH_District'] = FCI['WH_District'].apply(lambda x: x.replace(' ', ''))
         WH['SW_District'] = WH['SW_District'].apply(lambda x: x.replace(' ', ''))
-        Mill['WH_District'] = Mill['WH_District'].apply(lambda x: x.replace(' ', ''))
+        
 
         
 
@@ -5102,202 +5165,103 @@ def processFile_leg1():
         
         model = LpProblem('Supply-Demand-Problem', LpMinimize)
 
-        Variable3 = []
+        Variable1 = []
         
         for i in range(len(FCI['WH_ID'])):
             for j in range(len(WH['SW_ID'])):
-                Variable3.append(str(FCI['WH_ID'][i]) + '_'
-                                 + str(FCI['WH_District'][i]) + '_'
-                                 + str(WH['SW_ID'][j]) + '_'
-                                 + str(WH['SW_District'][j]) + '_NormalRice')
-                                 
-        Variable4 = []
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(WH['SW_ID'])):
-                Variable4.append(str(FCI['WH_ID'][i]) + '_'
-                                 + str(FCI['WH_District'][i]) + '_'
-                                 + str(WH['SW_ID'][j]) + '_'
-                                 + str(WH['SW_District'][j]) + '_StateFRKRice')
-                                 
-                                 
-        Variable5 = []
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(WH['SW_ID'])):
-                Variable5.append(str(FCI['WH_ID'][i]) + '_'
-                                 + str(FCI['WH_District'][i]) + '_'
-                                 + str(WH['SW_ID'][j]) + '_'
-                                 + str(WH['SW_District'][j]) + '_CentralFRKRice') 
-
-        Variable31 = []
-        
-        for i in range(len(Mill['WH_ID'])):
-            for j in range(len(WH['SW_ID'])):
-                Variable31.append(str(Mill['WH_ID'][i]) + '_'
-                                 + str(Mill['WH_District'][i]) + '_'
-                                 + str(WH['SW_ID'][j]) + '_'
-                                 + str(WH['SW_District'][j]) + '_IntNormalRice')
-                                 
-        Variable41 = []
-        for i in range(len(Mill['WH_ID'])):
-            for j in range(len(WH['SW_ID'])):
-                Variable41.append(str(Mill['WH_ID'][i]) + '_'
-                                 + str(Mill['WH_District'][i]) + '_'
-                                 + str(WH['SW_ID'][j]) + '_'
-                                 + str(WH['SW_District'][j]) + '_IntStateFRKRice')
-                                 
-                                 
-        Variable51 = []
-        for i in range(len(Mill['WH_ID'])):
-            for j in range(len(WH['SW_ID'])):
-                Variable51.append(str(Mill['WH_ID'][i]) + '_'
-                                 + str(Mill['WH_District'][i]) + '_'
-                                 + str(WH['SW_ID'][j]) + '_'
-                                 + str(WH['SW_District'][j]) + '_IntCentralFRKRice')   
-
-                         
+                Variable1.append(str(FCI['WH_ID'][i]) + '_'
+                                + str(FCI['WH_District'][i]) + '_'
+                                + str(WH['SW_ID'][j]) + '_'
+                                + str(WH['SW_District'][j]) + '_Raw')
 
         # Variables for Wheat from lEVEL2 TO FPS
 
-        DV_Variables3 = LpVariable.matrix('X', Variable3, cat='float',
+        DV_Variables1 = LpVariable.matrix('A', Variable1, cat='float',
                 lowBound=0)
-        print(DV_Variables3)
-        print(FCI['WH_ID'])
-        print(WH['SW_ID'])
-        Allocation3 = np.array(DV_Variables3).reshape(len(FCI['WH_ID']),
+        Allocation1 = np.array(DV_Variables1).reshape(len(FCI['WH_ID']),
                 len(WH['SW_ID']))
+        Variable2 = []
                 
-        
-                
-        DV_Variables4 = LpVariable.matrix('Y', Variable4, cat='float',
-                lowBound=0)
-        Allocation4 = np.array(DV_Variables4).reshape(len(FCI['WH_ID']),
-                len(WH['SW_ID']))
-                
-        DV_Variables5 = LpVariable.matrix('Y', Variable5, cat='float',
-                lowBound=0)
-        Allocation5 = np.array(DV_Variables5).reshape(len(FCI['WH_ID']),
-                len(WH['SW_ID']))  
-        DV_Variables31 = LpVariable.matrix('X', Variable31, cat='float',
-                lowBound=0)
-        Allocation31 = np.array(DV_Variables31).reshape(len(Mill['WH_ID']),
-                len(WH['SW_ID']))
-                
-        
-                
-        DV_Variables41 = LpVariable.matrix('Y', Variable41, cat='float',
-                lowBound=0)
-        Allocation41 = np.array(DV_Variables41).reshape(len(Mill['WH_ID']),
-                len(WH['SW_ID']))
-                
-        DV_Variables51 = LpVariable.matrix('Y', Variable51, cat='float',
-                lowBound=0)
-        Allocation51 = np.array(DV_Variables51).reshape(len(Mill['WH_ID']),
-                len(WH['SW_ID']))  
-        
-        print(Allocation51)
-        
-        
-        allCombination3 = []
-        allCombination4 = []
-        allCombination5 = []
-        allCombination31 = []
-        allCombination41 = []
-        allCombination51 = []
-
-
-        for i in range(len(dist)):
-            for j in range(len(WH['SW_ID'])):
-                allCombination3.append(Allocation3[i][j] * dist[i][j])
-                
-        for i in range(len(dist)):
-            for j in range(len(WH['SW_ID'])):
-                allCombination4.append(Allocation4[i][j] * dist[i][j])
-                
-        for i in range(len(dist)):
-            for j in range(len(WH['SW_ID'])):
-                allCombination5.append(Allocation5[i][j] * dist[i][j])       
-
-        for i in range(len(dist1)):
-            for j in range(len(WH['SW_ID'])):
-                allCombination31.append(Allocation31[i][j] * dist1[i][j])
-                
-        for i in range(len(dist1)):
-            for j in range(len(WH['SW_ID'])):
-                allCombination41.append(Allocation41[i][j] * dist1[i][j])
-                
-        for i in range(len(dist1)):
-            for j in range(len(WH['SW_ID'])):
-                allCombination51.append(Allocation51[i][j] * dist1[i][j]) 
-
-        model += lpSum(allCombination3 + allCombination31 )
-        
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
-
-        
-       # ================= DEMAND & CAPACITY (FCI + MILL) =================
-
-        for i in range(len(WH['SW_ID'])):
-            model += (
-            lpSum(Allocation3[j][i] for j in range(len(FCI['WH_ID']))) +
-            lpSum(Allocation31[k][i] for k in range(len(Mill['WH_ID'])))
-            >= WH['Storage_Mota'][i]
-        )
-
-        for i in range(len(WH['SW_ID'])):
-            model += (
-            lpSum(Allocation3[j][i] for j in range(len(FCI['WH_ID']))) +
-            lpSum(Allocation31[k][i] for k in range(len(Mill['WH_ID'])))
-            <= WH['Capacity_Mota'][i]
-        )
-
-
-        # ================= FCI SUPPLY =================
-
-        for i in range(len(FCI['WH_ID'])):
-            model += (
-            lpSum(Allocation3[i][j] for j in range(len(WH['SW_ID'])))
-            <= FCI['Inv_Mota'][i]
-        )
-            model += (
-            lpSum(Allocation3[i][j] for j in range(len(WH['SW_ID'])))
-            >= FCI['Inv_Mota'][i]
-        )
-
-
-    # ================= MILL SUPPLY =================
-
-        for i in range(len(Mill['WH_ID'])):
-            model += (
-                lpSum(Allocation31[i][j] for j in range(len(WH['SW_ID'])))
-                <= Mill['Inv_Mota'][i]
-            )
-            model += (
-                lpSum(Allocation31[i][j] for j in range(len(WH['SW_ID'])))
-                >= Mill['Inv_Mota'][i]
-            )    
-
         for i in range(len(FCI['WH_ID'])):
             for j in range(len(WH['SW_ID'])):
-                if FCI['WH_District'][i] != WH['SW_District'][j]:
-                    model += Allocation3[i][j] == 0  
+                Variable2.append(str(FCI['WH_ID'][i]) + '_'
+                                + str(FCI['WH_District'][i]) + '_'
+                                + str(WH['SW_ID'][j]) + '_'
+                                + str(WH['SW_District'][j]) + '_Para')
 
-        allowed_pairs = set(zip(Mill["WH_ID"], Mill["To_District"]))
+        # Variables for Wheat from lEVEL2 TO FPS
 
-        for j in range(len(DV_Variables31)):
-            name = str(DV_Variables31[j])
-            lst = name.split("_")
+        DV_Variables2 = LpVariable.matrix('B', Variable2, cat='float',
+                lowBound=0)
+        Allocation2 = np.array(DV_Variables2).reshape(len(FCI['WH_ID']),
+                len(WH['SW_ID']))
+        
+        allCombination1 = []
+        
+        for i in range(len(dist)):
+            for j in range(len(WH['SW_ID'])):
+                allCombination1.append(Allocation1[i][j] * dist[i][j])
+        allCombination2 = []
+                
+        for i in range(len(dist)):
+            for j in range(len(WH['SW_ID'])):
+                allCombination2.append(Allocation2[i][j] * dist[i][j])
+        
+                # ---------------- Objective ----------------
+        model += lpSum(allCombination1 + allCombination2)
 
-            wh = lst[1]          # warehouse ID
-            to_dist = lst[4]     # FPS district
+        # ---------------- District-level restriction ----------------
+        districts = WH['SW_District'].unique()
 
-            if (wh, to_dist) not in allowed_pairs:
-                model += DV_Variables31[j] == 0                           
+        commodity_map = {
+            'Raw': DV_Variables1,
+            'Para': DV_Variables2
+        }
+
+        for c in ['Raw', 'Para']:
+            var_list = commodity_map[c]
+
+            for d in districts:
+                total_supply = FCI.loc[FCI['WH_District'] == d, f'Supply_{c}'].sum()
+                total_demand = WH.loc[WH['SW_District'] == d, f'Demand_{c}'].sum()
+
+                for k in range(len(var_list)):
+                    name = str(var_list[k])
+                    lst = name.split("_")
+
+                    mill_dist = lst[1]
+                    wh_dist   = lst[3]
+
+                    # If district supply is sufficient → block inflow from other districts
+                    if total_supply >= total_demand:
+                        if wh_dist == d and mill_dist != d:
+                            model += var_list[k] == 0
+
+                    # If district supply is insufficient → block outflow to other districts
+                    else:
+                        if mill_dist == d and wh_dist != d:
+                            model += var_list[k] == 0
+
+
+        # ---------------- Flow constraints ----------------
+        commodities = ['Raw', 'Para']
+        allocations = {
+            'Raw': Allocation1 ,
+            'Para': Allocation2
+        }
+
+        for c in commodities:
+            alloc = allocations[c]
+
+            # Mill supply constraints
+            for i in range(len(FCI['WH_ID'])):
+                model += lpSum(alloc[i][j] for j in range(len(WH['SW_ID']))) == FCI.loc[i, f'Supply_{c}']
+
+            # Warehouse demand constraints
+            for j in range(len(WH['SW_ID'])):
+                # model += lpSum(alloc[i][j] for i in range(len(FPS['FPS_ID']))) >= WH.loc[j, f'Demand_{c}']
+                model += lpSum(alloc[i][j] for i in range(len(FCI['WH_ID']))) <= WH.loc[j, f'Demand_{c}']
+
 
         model.solve(CPLEX_CMD(options=['set mip tolerances mipgap 0.03',"set emphasis memory y"]))
         
@@ -5393,379 +5357,29 @@ def processFile_leg1():
         
         
                 
-        df9.to_excel('Backend//Tagging_Sheet_Pre_leg21.xlsx', sheet_name='BG_FPS')
-        
-        
-        model += lpSum(allCombination4+ allCombination41)
-                           
-                           
-                           
-      
-
-        for i in range(len(WH['SW_ID'])):
-            model += (
-                lpSum(Allocation4[j][i] for j in range(len(FCI['WH_ID']))) +
-                lpSum(Allocation41[k][i] for k in range(len(Mill['WH_ID'])))
-                >= WH['Storage_Patla'][i]
-            )
-
-
-        # ================= CAPACITY (FCI + MILL) =================
-
-        for i in range(len(WH['SW_ID'])):
-            model += (
-                lpSum(Allocation4[j][i] for j in range(len(FCI['WH_ID']))) +
-                lpSum(Allocation41[k][i] for k in range(len(Mill['WH_ID'])))
-                <= WH['Capacity_Patla'][i]
-            )
-
-
-        # ================= FCI SUPPLY =================
-
-        for i in range(len(FCI['WH_ID'])):
-            model += (
-                lpSum(Allocation4[i][j] for j in range(len(WH['SW_ID'])))
-                <= FCI['Inv_Patla'][i]
-            )
-            model += (
-                lpSum(Allocation4[i][j] for j in range(len(WH['SW_ID'])))
-                >= FCI['Inv_Patla'][i]
-            )
-
-
-        # ================= MILL SUPPLY =================
-
-        for i in range(len(Mill['WH_ID'])):
-            model += (
-                lpSum(Allocation41[i][j] for j in range(len(WH['SW_ID'])))
-                <= Mill['Inv_Patla'][i]
-            )
-            model += (
-                lpSum(Allocation41[i][j] for j in range(len(WH['SW_ID'])))
-                >= Mill['Inv_Patla'][i]
-            )
-                                
-                           
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(WH['SW_ID'])):
-                if FCI['WH_District'][i] != WH['SW_District'][j]:
-                    model += Allocation4[i][j] == 0     
-
-        allowed_pairs = set(zip(Mill["WH_ID"], Mill["To_District"]))
-
-        for j in range(len(DV_Variables41)):
-            name = str(DV_Variables41[j])
-            lst = name.split("_")
-
-            wh = lst[1]          # warehouse ID
-            to_dist = lst[4]     # FPS district
-
-            if (wh, to_dist) not in allowed_pairs:
-                model += DV_Variables41[j] == 0                    
-                           
-        model.solve(CPLEX_CMD(options=['set mip tolerances mipgap 0.03',"set emphasis memory y"]))
-        
-        
-       
-        status = LpStatus[model.status]
-
-        if status != "Optimal":
-            print("Optimization failed:", status)
-
-            data = {
-                "status": 0,
-                "message": "Infeasible or Unbounded Solution"
-            }
-
-            return json.dumps(data, indent=1)
-
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
-
-        #model.solve(PULP_CBC_CMD())
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)        
-        
-        
-        Original_Cost = 100000000
-        total = Original_Cost
-
-        data = {}
-        
-        
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
-
-        Output_File = open('Backend//Inter_District1_leg3.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
-
-        Output_File = open('Backend//Inter_District1_leg3.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
-
-        df91 = pd.read_csv('Backend//Inter_District1_leg3.csv',header=None)
-
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)        
-
-        df91.columns = ['Tagging']
-        df91[[
-            'Var',
-            'WH_ID',
-            'W_D',
-            'SW_ID',
-            'SW_D',
-            'commodity_Value',
-            ]] = df91[df91.columns[0]].str.split('_', n=6, expand=True)
-        del df91[df91.columns[0]]
-        df91[['commodity', 'Values']] = df91['commodity_Value'
-                ].str.split('\\t', n=1, expand=True)
-        del df91['commodity_Value']
-        df91 = df91.drop(np.where(df91['commodity'] == 'Wheat1')[0])
-        
-        
-        
-                
-        df91.to_excel('Backend//Tagging_Sheet_Pre_leg31.xlsx', sheet_name='BG_FPS')        
-
-
-
-        model += lpSum(allCombination5 + allCombination51)        
-
-        # for i in range(len(WH['SW_ID'])):
-        #     model += (lpSum(Allocation5[j][i] for j in range(len(FCI['WH_ID'
-        #                    ]))) >= WH['Storage_Saran'][i])
-                           
-        # for i in range(len(FCI['WH_ID'])):
-        #     model += ((lpSum(Allocation5[i][j] for j in range(len(WH['SW_ID'
-        #                    ]))))  <= FCI['Inv_Saran'][i])
-        #     model += ((lpSum(Allocation5[i][j] for j in range(len(WH['SW_ID'
-        #                    ]))))  >= FCI['Inv_Saran'][i])                               
-
-
-        # for i in range(len(WH['SW_ID'])):
-        #     model += (lpSum(Allocation5[j][i] for j in range(len(FCI['WH_ID'
-        #                    ]))) <= WH['Capacity_Saran'][i])
-
-        # ================= DEMAND (FCI + MILL) =================
-
-        for i in range(len(WH['SW_ID'])):
-            model += (
-                lpSum(Allocation5[j][i] for j in range(len(FCI['WH_ID']))) +
-                lpSum(Allocation51[k][i] for k in range(len(Mill['WH_ID'])))
-                >= WH['Storage_Saran'][i]
-            )
-
-
-        # ================= CAPACITY (FCI + MILL) =================
-
-        for i in range(len(WH['SW_ID'])):
-            model += (
-                lpSum(Allocation5[j][i] for j in range(len(FCI['WH_ID']))) +
-                lpSum(Allocation51[k][i] for k in range(len(Mill['WH_ID'])))
-                <= WH['Capacity_Saran'][i]
-            )
-
-
-        # ================= FCI SUPPLY =================
-
-        for i in range(len(FCI['WH_ID'])):
-            model += (
-                lpSum(Allocation5[i][j] for j in range(len(WH['SW_ID'])))
-                <= FCI['Inv_Saran'][i]
-            )
-            model += (
-                lpSum(Allocation5[i][j] for j in range(len(WH['SW_ID'])))
-                >= FCI['Inv_Saran'][i]
-            )
-
-
-        # ================= MILL SUPPLY =================
-
-        for i in range(len(Mill['WH_ID'])):
-            model += (
-                lpSum(Allocation51[i][j] for j in range(len(WH['SW_ID'])))
-                <= Mill['Inv_Saran'][i]
-            )
-            model += (
-                lpSum(Allocation51[i][j] for j in range(len(WH['SW_ID'])))
-                >= Mill['Inv_Saran'][i]
-            )
-       # Calling CBC_CMB Solver
-        
-        for i in range(len(FCI['WH_ID'])):
-            for j in range(len(WH['SW_ID'])):
-                if FCI['WH_District'][i] != WH['SW_District'][j]:
-                    model += Allocation5[i][j] == 0 
-
-        allowed_pairs = set(zip(Mill["WH_ID"], Mill["To_District"]))
-
-        for j in range(len(DV_Variables51)):
-            name = str(DV_Variables51[j])
-            lst = name.split("_")
-
-            wh = lst[1]          # warehouse ID
-            to_dist = lst[4]     # FPS district
-
-            if (wh, to_dist) not in allowed_pairs:
-                model += DV_Variables51[j] == 0     
-        
-        model.solve(CPLEX_CMD(options=[
-            "set mip tolerances mipgap 0.01",
-            "set emphasis memory y",
-            "set mip strategy file 3",
-            "set workmem 2048"
-        ]))
-        
-        
-       
-        status = LpStatus[model.status]
-
-        if status != "Optimal":
-            print("Optimization failed:", status)
-
-            data = {
-                "status": 0,
-                "message": "Infeasible or Unbounded Solution"
-            }
-
-            return json.dumps(data, indent=1)
-
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
-
-        
-
-        
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
-
-        Output_File = open('Backend//Inter_District1_leg4.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
-
-        Output_File = open('Backend//Inter_District1_leg4.csv', 'w')
-        for v in model.variables():
-            if v.value() > 0:
-                Output_File.write(v.name + '\t' + str(v.value()) + '\n')
-
-        df92 = pd.read_csv('Backend//Inter_District1_leg4.csv',header=None)
-
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)        
-
-        df92.columns = ['Tagging']
-        df92[[
-            'Var',
-            'WH_ID',
-            'W_D',
-            'SW_ID',
-            'SW_D',
-            'commodity_Value',
-            ]] = df92[df92.columns[0]].str.split('_', n=6, expand=True)
-        del df92[df92.columns[0]]
-        df92[['commodity', 'Values']] = df92['commodity_Value'
-                ].str.split('\\t', n=1, expand=True)
-        del df92['commodity_Value']
-        df92 = df92.drop(np.where(df92['commodity'] == 'Wheat1')[0])
-        
-        
-        
-                
-        df92.to_excel('Backend//Tagging_Sheet_Pre_leg41.xlsx', sheet_name='BG_FPS')
-        
-        
-        df3 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg41.xlsx', sheet_name='BG_FPS')
-
-        # Combine all rows
-        combined_df = pd.concat([df3], ignore_index=True)
-        print(combined_df)
-        def convert_to_numeric(value):
-            try:
-                return pd.to_numeric(value)
-            except ValueError:
-                return value
-        
-        
-        combined_df['WH_ID'] = combined_df['WH_ID'].apply(convert_to_numeric)
-        combined_df['SW_ID'] = combined_df['SW_ID'].apply(convert_to_numeric)
-
-        # Write to a new Excel file with one sheet
-        combined_df.to_excel(
-            'Backend//Tagging_Sheet_Pre_leg11.xlsx',
-            sheet_name='BG_FPS',
-            index=False
-        )
-
-        
-        
-        
-        
-        df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg11.xlsx')
-        df31['WH_ID'] = df31['WH_ID'].astype(str) 
+        df9.to_excel('Backend//Tagging_Sheet_Pre_leg12.xlsx', sheet_name='BG_FPS')
+        df31 = pd.read_excel('Backend//Tagging_Sheet_Pre_leg12.xlsx')
+        # Convert to object type, adjust as needed
         USN = pd.ExcelFile('Backend//Data_2.xlsx')
         WH = pd.read_excel(USN, sheet_name='A.1 Warehouse', index_col=None)
-        FCI = pd.read_excel(USN, sheet_name='A.2 FCI', index_col=None)        # Convert to object type, adjust as needed
-        Mill= pd.read_excel(USN, sheet_name='A.2 Mill', index_col=None) 
-        FCI['WH_ID'] = FCI['WH_ID'].astype(str) 
-        Mill['WH_ID'] = Mill['WH_ID'].astype(str) 
-        print('Avi')
+        FCI = pd.read_excel(USN, sheet_name='A.2 FCI', index_col=None)
 
-        if stop_process==True:
-            data = {}
-            data['status'] = 0
-            data['message'] = "Process Stopped"
-            json_data = json.dumps(data)
-            json_object = json.loads(json_data)
-            return json.dumps(json_object, indent=1)
-        df31_fci = df31[df31['commodity'].isin(['NormalRice', 'StateFRKRice','CentralFRKRice'])]   # adjust as per your logic
-        df31_mill = df31[~df31['commodity'].isin(['NormalRice', 'StateFRKRice','CentralFRKRice'])]
-        df_fci = pd.merge(df31_fci, FCI, on='WH_ID', how='left')
-        df_mill = pd.merge(df31_mill, Mill, on='WH_ID', how='left')
-        df4 = pd.concat([df_fci, df_mill], ignore_index=True)
 
-    
-        df44 = pd.merge(df4, WH, on='SW_ID', how='inner')
-        df51 = df44[[
+
+
+        df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
+        #df4 = pd.merge(df31, FCI, on='WH_ID', how='inner')
+        df4 = df4[[
+            'WH_ID',
+            'WH_Name',
+            'WH_District',
+            'WH_Lat',
+            'WH_Long',
+            'SW_ID',
+            'Values',
+            ]]
+        df4 = pd.merge(df4, WH, on='SW_ID', how='inner')
+        df51 = df4[[
             'WH_ID',
             'WH_Name',
             'WH_District',
@@ -5774,17 +5388,16 @@ def processFile_leg1():
             'SW_ID',
             'SW_Name',
             'SW_District',
-            'SW_Lat',
+            'SW_lat',
             'SW_Long',
-            'commodity',
             'Values',
             ]]
         df51.insert(0, 'Scenario', 'Optimized')
         df51.insert(1, 'From', 'Mill')
-        df51.insert(2, 'From_State', 'Chattisgarh')
+        df51.insert(2, 'From_State', 'WestBengal')
         df51.insert(7, 'To', 'Depot')
-        df51.insert(8, 'To_State', 'Chattisgarh')
-        
+        df51.insert(8, 'To_State', 'WestBengal')
+        df51.insert(9, 'commodity', 'Rice')
         df51.rename(columns={
             'WH_ID': 'From_ID',
             'WH_Name': 'From_Name',
@@ -5794,12 +5407,12 @@ def processFile_leg1():
         df51.rename(columns={
             'SW_ID': 'To_ID',
             'SW_Name': 'To_Name',
-            'SW_Lat': 'To_Lat',
+            'SW_lat': 'To_Lat',
             'SW_Long': 'To_Long',
             'Values':'quantity',
             }, inplace=True)
         df51.rename(columns={'WH_District': 'From_District',
-                   'SW_District': 'To_District'}, inplace=True)
+                'SW_District': 'To_District'}, inplace=True)
         df51 = df51.loc[:, [
             'Scenario',
             'From',
@@ -5819,18 +5432,18 @@ def processFile_leg1():
             'commodity',
             'quantity',
             ]]
+
+
         def convert_to_numeric(value):
             try:
                 return pd.to_numeric(value)
             except ValueError:
-                return value
-                
-        
+                return value    
         df51['From_ID'] = df51['From_ID'].apply(convert_to_numeric)
-        df51['To_ID'] = df51['To_ID'].apply(convert_to_numeric)   
-        
-        df51.to_excel('Backend//Tagging_Sheet_Pre11_leg1.xlsx', sheet_name='BG_FPS1')
-        data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre11_leg1.xlsx")
+        df51['To_ID'] = df51['To_ID'].apply(convert_to_numeric)  
+
+        df51.to_excel('Backend//Tagging_Sheet_Pre11_leg12.xlsx', sheet_name='BG_FPS1')
+        data1 = pd.ExcelFile("Backend//Tagging_Sheet_Pre11_leg12.xlsx")
         df5 = pd.read_excel(data1,sheet_name="BG_FPS1")
         data1.close()
         
