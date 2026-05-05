@@ -1073,7 +1073,6 @@ def save_to_database_leg1(month, year, day):
     table_name = "optimiseddata_leg1_" + str(random_id)
     mill_table = "mill_leg1_" + str(random_id)
     warehouse_table = "warehouse_leg1_" + str(random_id)
-    mill_replica_table = "mill_replica_leg1_" + str(random_id)
     if connection.is_connected():
         cursor = connection.cursor()
         current_datetime = datetime.now()
@@ -1085,7 +1084,6 @@ def save_to_database_leg1(month, year, day):
             table_name = "optimiseddata_leg1_" + str(existingid)
             mill_table = "mill_leg1_" + str(existingid)
             warehouse_table = "warehouse_leg1_" + str(existingid)
-            mill_replica_table = "mill_replica_leg1_" + str(existingid)
             cursor.execute(sql)
         else:
             sql = "INSERT INTO optimised_table_leg1 (id, month, year, day, last_updated) VALUES ('" + random_id + "','" + month + "','" + year + "','" + day + "','" + formatted_datetime + "')";
@@ -1105,24 +1103,11 @@ def save_to_database_leg1(month, year, day):
         
         warehouse_drop_query = 'DROP TABLE IF EXISTS ' + warehouse_table;
         cursor.execute(warehouse_drop_query)
-        create_warehouse_query = ("CREATE TABLE " + warehouse_table + " (district VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, id VARCHAR(100) NOT NULL, warehousetype VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, uniqueid VARCHAR(100) NOT NULL, active VARCHAR(10) NOT NULL DEFAULT '1',normal_rice VARCHAR(100) NOT NULL,state_frk_rice VARCHAR(100) NOT NULL,central_frk_rice VARCHAR(100) NOT NULL,storage_rice VARCHAR(100) NOT NULL,storage_state_frk_rice VARCHAR(100) NOT NULL,storage_central_frk_rice VARCHAR(100) NOT NULL )")
+        create_warehouse_query = ("CREATE TABLE " + warehouse_table + " (district VARCHAR(100) NOT NULL, name VARCHAR(100) NOT NULL, id VARCHAR(100) NOT NULL, warehousetype VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, uniqueid VARCHAR(100) NOT NULL, active VARCHAR(10) NOT NULL DEFAULT '1', storage_rice DECIMAL(10,2) DEFAULT 0.00, demand_raw_rice DECIMAL(10,2) DEFAULT 0.00, demand_paraboiled_rice DECIMAL(10,2) DEFAULT 0.00 )")
         cursor.execute(create_warehouse_query)
         connection.commit()
         copy_warehouse_data = ("INSERT INTO " + warehouse_table + " SELECT * FROM warehouse WHERE active='1'")
         cursor.execute(copy_warehouse_data)
-        connection.commit()
-        
-        # Create Mill Replica Leg 1 table
-        mill_replica_drop_query = 'DROP TABLE IF EXISTS ' + mill_replica_table;
-        cursor.execute(mill_replica_drop_query)
-        connection.commit()
-        
-        create_replica_query = ("CREATE TABLE " + mill_replica_table + " (uniqueid VARCHAR(100) NOT NULL, district VARCHAR(100) NOT NULL, to_district VARCHAR(100) NOT NULL, name VARCHAR(255) NOT NULL, id VARCHAR(100) NOT NULL, type VARCHAR(100) NOT NULL, latitude VARCHAR(100) NOT NULL, longitude VARCHAR(100) NOT NULL, incoming_min_mota VARCHAR(100), incoming_min_patla VARCHAR(100), incoming_min_saran VARCHAR(100), outgoing_min_mota VARCHAR(100), outgoing_min_patla VARCHAR(100), outgoing_min_saran VARCHAR(100), milling_capacity VARCHAR(100) NOT NULL, milling_capacity1 VARCHAR(100), milling_capacity2 VARCHAR(100), active VARCHAR(10) NOT NULL DEFAULT '1')")
-        cursor.execute(create_replica_query)
-        connection.commit()
-        
-        copy_replica_data = ("INSERT INTO " + mill_replica_table + " SELECT * FROM mill_replica WHERE active='1'")
-        cursor.execute(copy_replica_data)
         connection.commit()
         
         excel_file_path = 'Backend//Result_Sheet_leg1.xlsx'
@@ -4686,9 +4671,9 @@ def processFile_leg1():
             ]]
         df51.insert(0, 'Scenario', 'Optimized')
         df51.insert(1, 'From', 'Depot')
-        df51.insert(2, 'From_State', 'Nagaland')
+        df51.insert(2, 'From_State', 'WestBengal')
         df51.insert(7, 'To', 'FPS')
-        df51.insert(8, 'To_State', 'Nagaland')
+        df51.insert(8, 'To_State', 'WestBengal')
         df51.insert(9, 'commodity', 'Wheat')
         df51.rename(columns={
             'WH_ID': 'From_ID',
@@ -5056,6 +5041,7 @@ def processFile_leg1():
         # Save Excel
         # output_path = 'Backend//Result_Sheet_leg1.xlsx'
         df10.to_excel('Backend//Result_Sheet_leg1.xlsx', sheet_name='FCI_Warehouse')
+        dfinal = pd.read_excel('Backend//Result_Sheet_leg1.xlsx', sheet_name='FCI_Warehouse')
 # ----------------------------------------------------------------------------------------------------------
         
         data["Scenario"]="Intra"
