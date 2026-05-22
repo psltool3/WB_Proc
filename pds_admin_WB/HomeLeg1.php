@@ -409,7 +409,7 @@ require('Header.php');
 			<!-- START SIMPLE DATATABLE -->
 			<div class="panel panel-default">
 				<div class="panel-heading" style="text-align: center;">
-					<h1 style="font-weight: bold; color: #335566;">Chhattisgarh PDS Route Optimisation</h1>
+					<h1 style="font-weight: bold; color: #335566;">West Bengal PDS Route Optimisation</h1>
 					<h1 style="font-weight: bold; color: #ff7066;">Kindly Optimised the Leg2-Mill to Warehouse</h1>
 
 				</div>
@@ -529,7 +529,7 @@ require('Header.php');
 								</div>
 							<br><br><br><br><br>
 							
-							<div class="col-md-12 mb-4">
+							<div class="col-md-4 mb-3">
 									<div class="card h-100"
 										style="background-color:#34495E; color:white; padding:12px; font-weight: bold;">
 										<div style="font-size:20px" id="total_storage"></div>

@@ -77,20 +77,21 @@ require('Header.php');
 
 											$query = "SELECT * FROM ".$tablename." WHERE 1";
 											$result = mysqli_query($con,$query);
-											$numrows = mysqli_num_rows($result);
-											while($row = mysqli_fetch_assoc($result))
-											{		
-												$qkm_optimised = $qkm_optimised + (float)$row["quantity"] * (float)$row["distance"];
-												if($row['new_id_admin']!=null or $row['new_id_admin']!=""){
-													$row["distance"] = $row['new_distance_admin'];
+											if($result !== false){
+												while($row = mysqli_fetch_assoc($result))
+												{		
+													$qkm_optimised = $qkm_optimised + (float)$row["quantity"] * (float)$row["distance"];
+													if($row['new_id_admin']!=null or $row['new_id_admin']!=""){
+														$row["distance"] = $row['new_distance_admin'];
+													}
+													else if(($row['new_id_district']!=null or $row['new_id_district']!="") and $row['approve_admin']=="yes"){
+														$row["distance"] = $row['new_distance_district'];
+													}		
+													$allocation = $allocation + (float)$row["quantity"];
+													$qkm = $qkm + (float)$row["quantity"] * (float)$row["distance"];
 												}
-												else if(($row['new_id_district']!=null or $row['new_id_district']!="") and $row['approve_admin']=="yes"){
-													$row["distance"] = $row['new_distance_district'];
-												}		
-												$allocation = $allocation + (float)$row["quantity"];
-												$qkm = $qkm + (float)$row["quantity"] * (float)$row["distance"];
 											}
-											$averagedistanceoptimised = round($qkm_optimised/$allocation,2);
+											$averagedistanceoptimised = $allocation > 0 ? round($qkm_optimised/$allocation,2) : 0;
 											$qkm = round($qkm,2);
 
 											$reset = "<input class='btn btn-info btn-block' style='width:50%' onclick='resetFunction(\"".$id."\")' value='Reset'></input>";

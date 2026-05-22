@@ -22,24 +22,41 @@ if (isset($_GET['format'])) {
 	$parts = explode('_', $month);
 	$year = $parts[0];
 	$month = $parts[1];
-	$day = $parts[2];
+	$day = $parts[2]; // Use the full value as stored in DB (e.g., '14-5-2026')
 	$query = "SELECT * FROM optimised_table WHERE year='$year' AND month='$month' AND day='$day'";
-	$result = mysqli_query($con,$query);
-	$numrow = mysqli_num_rows($result);
+	$result = mysqli_query($con, $query);
 	$id = "";
-	if($numrow>0){
+	if ($result && mysqli_num_rows($result) > 0) {
 		$row = mysqli_fetch_assoc($result);
 		$id = $row['id'];
 	}
 
-	$tablename = "optimiseddata_".$id;
-	$query = "SELECT * FROM ".$tablename." WHERE to_district='$district' AND status='implemented'";
-	if($district=="" OR $district=="all"){
-		$query = "SELECT * FROM ".$tablename." WHERE status='implemented'";
+	// No optimisation run found for this date — return empty sheet with headers only
+	if ($id === "") {
+		$tableData = array();
+		$tableData_pdf = array();
+		array_push($tableData, $columns);
+		array_push($tableData_pdf, $columns_pdf);
+		// Fall through to format switch with header-only data
+		goto output;
 	}
-	
-    $result = mysqli_query($con,$query);
-    $numrows = mysqli_num_rows($result);
+
+	$tablename = "optimiseddata_" . $id;
+	$query = "SELECT * FROM " . $tablename . " WHERE to_district='$district' AND status='implemented'";
+	if ($district == "" || $district == "all") {
+		$query = "SELECT * FROM " . $tablename . " WHERE status='implemented'";
+	}
+
+	$result = mysqli_query($con, $query);
+	if ($result === false) {
+		// Table doesn't exist or query failed — return headers only
+		$tableData = array();
+		$tableData_pdf = array();
+		array_push($tableData, $columns);
+		array_push($tableData_pdf, $columns_pdf);
+		goto output;
+	}
+	$numrows = mysqli_num_rows($result);
     $tableData = array();
 	$tableData_pdf = array();
     array_push($tableData,$columns);
@@ -89,7 +106,8 @@ if (isset($_GET['format'])) {
             array_push($tableData_pdf,$temp_pdf);
         }
     }
-    
+
+	output:
     // Filename for the downloaded file
     $filename = 'table_data';
 
