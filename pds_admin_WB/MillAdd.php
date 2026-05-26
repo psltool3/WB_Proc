@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require('util/Connection.php');
 require('util/SessionCheck.php');
 require('Header.php');
@@ -48,7 +48,7 @@ require('Header.php');
                                                 <div class="col-md-9">
                                                     <div class="input-group">
                                                         <span class="input-group-addon"><span class="fa fa-info"></span></span>
-                                                        <input type="text" class="form-control" id="name" name="name" required />
+                                                        <input type="text" class="form-control" id="name" name="name" pattern="^[a-zA-Z0-9_\-\s]+$" title="Only characters, numbers, underscores, hyphens, and spaces are allowed" required />
                                                     </div>
                                                     <span class="help-block">Mill Name</span>
                                                 </div>
@@ -111,7 +111,7 @@ require('Header.php');
                                                 <div class="col-md-9">
                                                     <div class="input-group">
                                                         <span class="input-group-addon"><span class="fa fa-info"></span></span>
-                                                        <input type="text" class="form-control" id="id" name="id" required />
+                                                        <input type="text" class="form-control" id="id" name="id" pattern="^[a-zA-Z0-9_\-]+$" title="Only characters, numbers, underscores, and hyphens are allowed (no spaces)" required />
                                                     </div>
                                                     <span class="help-block">Mill ID</span>
                                                 </div>
@@ -272,6 +272,18 @@ require('Header.php');
                 return false;
             }
 			
+            var nameRegex = /^[a-zA-Z0-9_\-\s]+$/;
+            if (!nameRegex.test(name)) {
+                alert('Name should only contain characters, numbers, underscores, hyphens, and spaces.');
+                return false;
+            }
+
+            var idRegex = /^[a-zA-Z0-9_\-]+$/;
+            if (!idRegex.test(id)) {
+                alert('ID should only contain characters, numbers, underscores, and hyphens.');
+                return false;
+            }
+
             document.getElementById('popup').style.display = 'block';
         }
 		

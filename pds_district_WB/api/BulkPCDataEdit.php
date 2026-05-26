@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require('../util/Connection.php');
 require('../structures/PC.php');
 require('../util/SessionFunction.php');
@@ -55,7 +55,7 @@ if($numrows>0){
 }
 
 function formatName($name) {
-    $name = preg_replace('/[^a-zA-Z0-9_ ]/', '', $name);
+    $name = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $name);
     $name = ucwords(strtolower($name));
     return trim($name);
 }
@@ -137,12 +137,21 @@ try{
 					}
 					if (
 						!isset($column[$id]) ||
-						!preg_match('/^[A-Za-z0-9]+$/', $column[$id])
+						!preg_match('/^[a-zA-Z0-9_\-]+$/', $column[$id])
 					) {
 						echo "Error: PC ID should not contain spaces or any special characters: " . ($column[$id] ?? 'Missing');
 						echo "<br>";
 						$redirect = 0;
 					}	
+
+					if (
+						!isset($column[$name]) ||
+						!preg_match('/^[a-zA-Z0-9_\- ]+$/', $column[$name])
+					) {
+						echo "Error: PC Name should only contain characters, numbers, underscores, hyphens, and spaces: " . ($column[$name] ?? 'Missing');
+						echo "<br>";
+						$redirect = 0;
+					}
                     if(!in_array($column[$district], $districts)){
                         echo "Error : Check District Name: ".$column[$district];
                         echo "</br>";

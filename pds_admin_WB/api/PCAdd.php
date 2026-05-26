@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 require('../util/Connection.php');
 require('../structures/PC.php');
@@ -19,7 +19,7 @@ require('Header.php');
 
 
 function formatName($name) {
-	$name = preg_replace('/[^a-zA-Z0-9_ ]/', '', $name);
+	$name = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $name);
     $name = ucwords(strtolower($name));
     return trim($name);
 }
@@ -82,6 +82,16 @@ $errors = [];
 if(!isStringNumber($_POST["Paddy_Arrival"])){
   echo "Error : Check Paddy Arrival Value";
 	exit();
+}
+
+if (!isset($_POST["id"]) || !preg_match('/^[a-zA-Z0-9_\-]+$/', $_POST["id"])) {
+    echo "Error : Invalid ID (only characters, numbers, underscores, and hyphens are allowed, no spaces)";
+    exit();
+}
+
+if (!isset($_POST["name"]) || !preg_match('/^[a-zA-Z0-9_\- ]+$/', $_POST["name"])) {
+    echo "Error : Invalid Name (only characters, numbers, underscores, hyphens, and spaces are allowed)";
+    exit();
 }
 
 $dbHashedPassword = $row['password'];

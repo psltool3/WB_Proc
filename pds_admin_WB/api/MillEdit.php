@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 require('../util/Connection.php');
 require('../structures/Mill.php');
@@ -16,7 +16,7 @@ if(!SessionCheck()){
 require('Header.php');
 
 function formatName($name) {
-	$name = preg_replace('/[^a-zA-Z0-9_ ]/', '', $name);
+	$name = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $name);
     $name = ucwords(strtolower($name));
     return trim($name);
 }
@@ -96,6 +96,16 @@ if (!is_numeric($_POST["Inventory_Para_Rice"])) {
 // Performance Factor check
 if (!is_numeric($_POST["performance_factor"])) {
     $errors[] = "Error : Performance Factor must be numeric";
+}
+
+// Name validation check
+if (!isset($_POST["id"]) || !preg_match('/^[a-zA-Z0-9_\-]+$/', $_POST["id"])) {
+    echo "Error : Invalid ID (only characters, numbers, underscores, and hyphens are allowed, no spaces)";
+    exit();
+}
+
+if (!isset($_POST["name"]) || !preg_match('/^[a-zA-Z0-9_\- ]+$/', $_POST["name"])) {
+    $errors[] = "Error : Invalid Name (only characters, numbers, underscores, hyphens, and spaces are allowed)";
 }
 
 // If any error exists, print all and stop

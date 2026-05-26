@@ -140,7 +140,7 @@ if($currentTimestamp >= $targetTimestamp) {
                 <!-- START BREADCRUMB -->
                 <ul class="breadcrumb">
                     <li><a href="#">Home</a></li>
-                    <li class="active">Chattisgarh Intra Route Optimization For PDS</li>
+                    <li class="active">West BengalIntra Route Optimization For PDS</li>
                 </ul>
                 <!-- END BREADCRUMB -->
 
@@ -154,7 +154,7 @@ if($currentTimestamp >= $targetTimestamp) {
                             <!-- START SIMPLE DATATABLE -->
                             <div class="panel panel-default">
 								<div class="panel-heading">
-                                    <h3 class="panel-title">Chattisgarh Intra Route Optimization For PDS <div id="timer"> <b>Time Left &nbsp </b> <span id="countdown"></span></h3>
+                                    <h3 class="panel-title">West BengalIntra Route Optimization For PDS <div id="timer"> <b>Time Left &nbsp </b> <span id="countdown"></span></h3>
                                 </div>
                             </div>
 							<div class="row">
