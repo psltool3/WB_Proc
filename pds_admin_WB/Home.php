@@ -952,7 +952,7 @@ require('Header.php');
 				if (infeasibleList.length > 0) {
 					document.getElementById("resultdistrict").innerHTML = "Intra district movement is infeasible for: " + infeasibleList.join(', ');
 					document.getElementById("resultdistrict").style.color = "#ADFF2F";
-					isInfeasible = true;
+					isInfeasible = false;
 				} else {
 					document.getElementById("resultdistrict").innerHTML = "Intra scenario in every district is feasible.";
 					document.getElementById("resultdistrict").style.color = "#1111BB";
@@ -1315,8 +1315,8 @@ function handleStateCheckboxChange() {
 				var isFeasible = (
 					totalMillCapacity >= totalSupply &&
 					totalMillCapacity >= rawCapacity &&
-					totalMillCapacity >= paraCapacity &&
-					isEmptyDistrict(districtdata["District_Name_All"])
+					totalMillCapacity >= paraCapacity 
+					
 				);
 				if (isFeasible) {
 					document.getElementById("result").innerHTML =
